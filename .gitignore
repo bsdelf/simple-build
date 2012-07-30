@@ -1,0 +1,5 @@
+*.o
+*.out
+*.core
+eb
+build
