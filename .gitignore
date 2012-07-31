@@ -1,5 +1,6 @@
 *.o
 *.out
 *.core
+*.swp
 eb
 build
