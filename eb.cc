@@ -126,12 +126,12 @@ int main(int argc, char** argv)
         const string& arg(argv[i]);
 
         size_t pos = arg.find('=');
-        if (pos != string::npos) {
+        if (pos != string::npos && pos != arg.size()-1) {
             auto iter = ArgTable.find( arg.substr(0, pos) );
             if (iter != ArgTable.end()) {
                 iter->second = arg.substr(pos+1);
-                continue;
             }         
+            continue;
         } else if (arg == "clean") {
             clean = true;
             continue;
@@ -233,7 +233,7 @@ int main(int argc, char** argv)
         if (shared)
             ldCmd += "-shared ";
 
-        cout << "== Compile All ==" << endl;
+        cout << "== Compile ==" << endl;
         for (auto unit: units) {
             bool isDepNewer = false;
             for (const auto& dep: unit.deps) {
@@ -251,7 +251,7 @@ int main(int argc, char** argv)
             ldCmd += unit.out + " ";
         }
 
-        cout << "== Generate Output ==" << endl;
+        cout << "== Generate ==" << endl;
         if (hasNew || !FileInfo(ArgTable["out"]).Exists() ) {
             cout << ldCmd << endl;
             if (::system( ldCmd.c_str() ) != 0)
