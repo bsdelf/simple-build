@@ -1,16 +1,12 @@
 #include <assert.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 #include <string>
 #include <iostream>
 #include <unordered_set>
 #include <unordered_map>
-#include <regex>
 #include <future>
 #include <atomic>
 using namespace std;
@@ -19,124 +15,11 @@ using namespace std;
 #include "scx/FileInfo.hpp"
 using namespace scx;
 
+#include "Tools.h"
+#include "EasyBuild.h"
+
 const unordered_set<string> C_EXT = { "c" };
 const unordered_set<string> CXX_EXT = { "cc", "cxx", "cpp", "C" };
-
-struct ConsUnit
-{
-    string in;
-    string out;
-    string build;
-#ifdef DEBUG
-    vector<string> deps;
-#endif
-
-    explicit ConsUnit(const string& _in): in(_in) { }
-};
-
-std::string DoCmd(const string& cmd)
-{
-    FILE* pipe = popen(cmd.c_str(), "r");
-    if (!pipe) 
-        return "";
-
-    std::string output;
-    char buffer[1024];
-    while ( !feof(pipe) ) {
-        if (fgets(buffer, sizeof(buffer), pipe) != NULL)
-            output += buffer;
-    }
-    pclose(pipe);
-
-    return output;
-}
-
-std::vector<std::string> RegexSplit(const string& in, const string& sre)
-{
-    std::regex re(sre);
-    std::sregex_token_iterator
-        first { in.begin(), in.end(), re, -1 },
-        last;
-    return { first, last };
-}
-
-bool IsNewer(const string& f1, const string& f2)
-{
-    struct stat s1, s2;
-    ::memset(&s1, 0, sizeof(struct stat));
-    ::memset(&s2, 0, sizeof(struct stat));
-
-    ::stat(f1.c_str(), &s1);
-    ::stat(f2.c_str(), &s2);
-    return ((s1.st_mtim.tv_sec == s2.st_mtim.tv_sec) ?
-            (s1.st_mtim.tv_nsec > s2.st_mtim.tv_nsec) :
-            (s1.st_mtim.tv_sec > s2.st_mtim.tv_sec));
-}
-
-// Maybe we can cache mtime to reduce the stat() system calls.
-bool InitConstUnit(ConsUnit& u, const string& c, const string& f)
-{
-    const string& cmd(c + " -MM " + u.in + " " + f);
-    const string& deps( DoCmd(cmd) );
-    const string& re("(\\s)+(\\\\)*(\\s)*");
-    
-    const auto& l = RegexSplit(deps, re);
-    if (l.size() >= 2) {
-        u.out = l[0].substr(0, l[0].size()-1);
-
-        bool need = false;
-        if ( FileInfo(u.out).Exists() ) {
-            for (size_t i = 1; i < l.size(); ++i) {
-                if (IsNewer(l[i], u.out)) {
-                    need = true;
-                    break;
-                }
-            }
-        } else {
-            need = true;
-        }
-
-        if (need) {
-            u.build = c + " -o " + u.out + " -c " + u.in + " " + f;
-#ifdef DEBUG
-            u.deps.assign(l.begin()+1, l.end());
-#endif
-        }
-        return true;
-    } else {
-        return false;
-    }
-}
-
-void Usage(const string& cmd)
-{
-    const string sp(cmd.size(), ' ');
-    cout << ""
-        "Usage:\n"
-        "\t" + cmd + " [ file1 file1 | dir1 dir2 ]\n"
-        "\t" + sp + " cc=?        C compiler.\n"
-        "\t" + sp + " cxx=?       C++ compiler.\n"
-        "\t" + sp + " flag=?      Compiler flag.\n"
-        "\t" + sp + " ldflag=?    Linker flag.\n"
-        //"   " + sp + " with=?,?,? without=?,?,?\n"
-        //"   " + sp + " obj=\"outA:dep1, dep2:cmdA; outB:dep1, dep2:cmdB; ...\"\n"
-        "\t" + sp + " clean       Clean build output.\n"
-        "\t" + sp + " help        Show this help message.\n"
-        "\n"
-        "\t" + sp + " shared      Generate shared library. (*)\n"
-        "\t" + sp + " debug       Build with debug symbols. (*)\n"
-        "\t" + sp + " clang++11   Use clang & libc++. (*)\n"
-        "\n";
-
-    cout << ""
-        "Note:\n"
-        "\t(*) Just for convenient. You may also use flags to approach the function.\n"
-        "\n";
-
-    cout << ""
-        "Author:\n"
-        "\tYanhui Shen <@pagedir on Twitter>\n";
-}
 
 int main(int argc, char** argv)
 {
@@ -163,7 +46,7 @@ int main(int argc, char** argv)
     for (int i = 1; i < argc; ++i) {
         const string& arg(argv[i]);
 
-        // So obvisously, file name should not contains '='.
+        // So obvisously, file name should not contain '='.
         size_t pos = arg.find('=');
         if (pos != string::npos && pos != arg.size()-1) {
             // Update key-value.
@@ -225,6 +108,7 @@ int main(int argc, char** argv)
     bool hasCpp = false;
     vector<ConsUnit> units;
     size_t buildCount = 0;
+
     for (const auto& file: all) {
         ConsUnit unit(file);
         string compiler, flag;
@@ -258,6 +142,7 @@ int main(int argc, char** argv)
             return 1;
         }
     }
+
     if (hasCpp)
         ArgTable["ld"] = ArgTable["cxx"];
 
@@ -274,6 +159,7 @@ int main(int argc, char** argv)
 #endif
 
     // Let's build them all.
+    // TODO: Parallel build.
     if (!clean) {
         bool compiled = false;
         string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + " " +
@@ -285,6 +171,7 @@ int main(int argc, char** argv)
         cout << "== Compile ==" << endl;
         size_t buildIndex = 0;
         for (const auto& unit: units) {
+            // If build command isn't empty, do it.
             if (!unit.build.empty()) {
                 assert(buildCount != 0);
 
@@ -298,6 +185,7 @@ int main(int argc, char** argv)
                 compiled = true;
             }
 
+            // Record all our objects.
             ldCmd += unit.out + " ";
         }
 
