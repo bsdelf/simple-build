@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -24,10 +25,13 @@ const unordered_set<string> CXX_EXT = { "cc", "cxx", "cpp", "C" };
 struct ConsUnit
 {
     string in;
-
     string out;
     string build;
+#ifdef DEBUG
     vector<string> deps;
+#endif
+
+    explicit ConsUnit(const string& _in): in(_in) { }
 };
 
 std::string DoCmd(const string& cmd)
@@ -69,25 +73,44 @@ bool IsNewer(const string& f1, const string& f2)
             (s1.st_mtim.tv_sec > s2.st_mtim.tv_sec));
 }
 
-bool CalcDep(ConsUnit& u, const string& c, const string& f)
+// Maybe we can cache mtime to reduce the stat() system calls.
+bool InitConstUnit(ConsUnit& u, const string& c, const string& f)
 {
     const string& cmd(c + " -MM " + u.in + " " + f);
-    string deps( DoCmd(cmd) );
-    string re("(\\s)+(\\\\)*(\\s)*");
+    const string& deps( DoCmd(cmd) );
+    const string& re("(\\s)+(\\\\)*(\\s)*");
     
-    auto l = RegexSplit(deps, re);
+    const auto& l = RegexSplit(deps, re);
     if (l.size() >= 2) {
         u.out = l[0].substr(0, l[0].size()-1);
-        u.build = c + " -o " + u.out + " -c " + u.in + " " + f;
-        u.deps.assign(l.begin()+1, l.end());
+
+        bool need = false;
+        if ( FileInfo(u.out).Exists() ) {
+            for (size_t i = 1; i < l.size(); ++i) {
+                if (IsNewer(l[i], u.out)) {
+                    need = true;
+                    break;
+                }
+            }
+        } else {
+            need = true;
+        }
+
+        if (need) {
+            u.build = c + " -o " + u.out + " -c " + u.in + " " + f;
+#ifdef DEBUG
+            u.deps.assign(l.begin()+1, l.end());
+#endif
+        }
         return true;
-    } else
+    } else {
         return false;
+    }
 }
 
 void Usage(const string& cmd)
 {
-    const string sp(cmd.size(), ' ');
+    const string& sp(cmd.size(), ' ');
     cout << ""
         "Usage:\n"
         "\t" + cmd + " [ file1 file1 | dir1 dir2 ]\n"
@@ -105,8 +128,10 @@ void Usage(const string& cmd)
 
 int main(int argc, char** argv)
 {
+    const unsigned int cpus = sysconf(_SC_NPROCESSORS_ONLN);
+
     unordered_map<string, string> ArgTable = {
-        { "out", "app" },
+        { "out", "a.exe" },
         { "with", "" },
         { "without", "" },
         { "cc", "cc" },
@@ -172,12 +197,17 @@ int main(int argc, char** argv)
 
     if (all.empty())
         all = Dir::ListTree(".");
+    if (all.empty()) {
+        cerr << "FATAL: nothing to build!" << endl;
+        return 1;
+    }
 
     // Prepare construct units.
     bool hasCpp = false;
     vector<ConsUnit> units;
-    for (auto file: all) {
-        ConsUnit unit { file };
+    size_t buildCount = 0;
+    for (const auto& file: all) {
+        ConsUnit unit(file);
         string compiler, flag;
 
         if (debug)
@@ -198,8 +228,9 @@ int main(int argc, char** argv)
             continue;
 
         // Calculate dependence.
-        if (CalcDep(unit, compiler, flag)) {
+        if ( InitConstUnit(unit, compiler, flag) ) {
             units.push_back(unit);
+            if (!unit.build.empty()) ++buildCount;
         } else {
             cerr << "FATAL: failed to calculate dependence!" << endl;
             cerr << "\tfile: " << file << endl;
@@ -213,11 +244,11 @@ int main(int argc, char** argv)
 
 #ifdef DEBUG
     // Debug info.
-    for (auto unit: units) {
+    for (const auto& unit: units) {
         cout << "in: " <<  unit.in << ", " << "out: " << unit.out << endl;
         cout << "\t" << unit.build << endl;
         cout << "\t";
-        for (auto dep: unit.deps)
+        for (const auto& dep: unit.deps)
             cout << dep << ", ";
         cout << endl;
     }
@@ -225,34 +256,33 @@ int main(int argc, char** argv)
 
     // Let's build them all.
     if (!clean) {
-        unsigned int cpus = sysconf(_SC_NPROCESSORS_ONLN);
-
-        bool hasNew = false;
+        bool compiled = false;
         string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + " " + ArgTable["flag"] + " " + ArgTable["ldflag"] + " ";
 
         if (shared)
             ldCmd += "-shared ";
 
         cout << "== Compile ==" << endl;
-        for (auto unit: units) {
-            bool isDepNewer = false;
-            for (const auto& dep: unit.deps) {
-                if (IsNewer(dep, unit.out)) {
-                    isDepNewer = true;
-                    break;
-                }
-            }
-            if ( !FileInfo(unit.out).Exists() || isDepNewer) {
-                cout << unit.build << endl;
+        size_t buildIndex = 0;
+        for (const auto& unit: units) {
+            if (!unit.build.empty()) {
+                assert(buildCount != 0);
+
+                char buf[] = "[ 100% ] ";
+                int percent = (double)(++buildIndex) / buildCount * 100;
+                ::snprintf(buf, sizeof buf, "[ %3.d%% ] ", percent);
+                cout << buf << unit.build << endl;
+
                 if (::system( unit.build.c_str() ) != 0)
                     return 2;
-                hasNew = true;
+                compiled = true;
             }
+
             ldCmd += unit.out + " ";
         }
 
         cout << "== Generate ==" << endl;
-        if (hasNew || !FileInfo(ArgTable["out"]).Exists() ) {
+        if (compiled || !FileInfo(ArgTable["out"]).Exists() ) {
             cout << ldCmd << endl;
             if (::system( ldCmd.c_str() ) != 0)
                 return 3;
