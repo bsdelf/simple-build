@@ -1,6 +1,8 @@
 *.o
+*.so
 *.out
 *.core
 *.swp
+*.exe
 eb
 build
