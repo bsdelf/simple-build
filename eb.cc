@@ -110,7 +110,7 @@ bool InitConstUnit(ConsUnit& u, const string& c, const string& f)
 
 void Usage(const string& cmd)
 {
-    const string& sp(cmd.size(), ' ');
+    const string sp(cmd.size(), ' ');
     cout << ""
         "Usage:\n"
         "\t" + cmd + " [ file1 file1 | dir1 dir2 ]\n"
@@ -120,10 +120,22 @@ void Usage(const string& cmd)
         "\t" + sp + " ldflag=?    Linker flag.\n"
         //"   " + sp + " with=?,?,? without=?,?,?\n"
         //"   " + sp + " obj=\"outA:dep1, dep2:cmdA; outB:dep1, dep2:cmdB; ...\"\n"
-        "\t" + sp + " shared      Generate shared library.\n"
-        "\t" + sp + " debug       Build with debug symbols.\n"
         "\t" + sp + " clean       Clean build output.\n"
-        "\t" + sp + " help        Show this help message.\n";
+        "\t" + sp + " help        Show this help message.\n"
+        "\n"
+        "\t" + sp + " shared      Generate shared library. (*)\n"
+        "\t" + sp + " debug       Build with debug symbols. (*)\n"
+        "\t" + sp + " clang++11   Use clang & libc++. (*)\n"
+        "\n";
+
+    cout << ""
+        "Note:\n"
+        "\t(*) Just for convenient. You may also use flags to approach the function.\n"
+        "\n";
+
+    cout << ""
+        "Author:\n"
+        "\tYanhui Shen <@pagedir on Twitter>\n";
 }
 
 int main(int argc, char** argv)
@@ -144,55 +156,62 @@ int main(int argc, char** argv)
     bool shared = false;
     bool debug = false;
     bool clean = false;
+    bool useClangXX11 = false;
     vector<string> with, without, all;
 
     // Parse arguments.
     for (int i = 1; i < argc; ++i) {
         const string& arg(argv[i]);
 
+        // So obvisously, file name should not contains '='.
         size_t pos = arg.find('=');
         if (pos != string::npos && pos != arg.size()-1) {
+            // Update key-value.
             auto iter = ArgTable.find( arg.substr(0, pos) );
             if (iter != ArgTable.end()) {
                 iter->second = arg.substr(pos+1);
             }         
-            continue;
         } else if (arg == "clean") {
             clean = true;
-            continue;
-        } else if (arg == "debug") {
-            debug = true;
-            continue;
-        } else if (arg == "shared") {
-            shared = true;
-            continue;
         } else if (arg == "help") {
             Usage(argv[0]);
             return 0;
-        }
+        } else if (arg == "debug") {
+            debug = true;
+        } else if (arg == "shared") {
+            shared = true;
+        } else if (arg == "clang++11") {
+            useClangXX11 = true;
+        } else {
+            switch ( FileInfo(arg).Type() ) {
+            case FileType::Directory:
+            {
+                auto files = Dir::ListTree(arg);
+                all.reserve(all.size() + files.size());
+                all.insert(all.end(), files.begin(), files.end());
+            }
+                break;
 
-        switch ( FileInfo(arg).Type() ) {
-        case FileType::Directory:
-        {
-            auto files = Dir::ListTree(arg);
-            all.reserve(all.size() + files.size());
-            all.insert(all.end(), files.begin(), files.end());
-        }
-            break;
+            case FileType::Regular:
+            {
+                all.push_back(arg);
+            }
+                break;
 
-        case FileType::Regular:
-        {
-            all.push_back(arg);
+            default:
+            {
+                cout << "WARN: bad argument." << endl;
+                cout << "\targ:" << arg << endl;
+            }
+                break;
+            }
         }
-            break;
+    }
 
-        default:
-        {
-            cout << "WARN: bad argument." << endl;
-            cout << "\targ:" << arg << endl;
-        }
-            break;
-        }
+    if (useClangXX11) {
+        ArgTable["cc"] = "clang";
+        ArgTable["cxx"] = "clang++";
+        ArgTable["flag"] += " -std=c++11 -stdlib=libc++ ";
     }
 
     if (all.empty())
@@ -257,7 +276,8 @@ int main(int argc, char** argv)
     // Let's build them all.
     if (!clean) {
         bool compiled = false;
-        string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + " " + ArgTable["flag"] + " " + ArgTable["ldflag"] + " ";
+        string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + " " +
+                       ArgTable["flag"] + " " + ArgTable["ldflag"] + " ";
 
         if (shared)
             ldCmd += "-shared ";
