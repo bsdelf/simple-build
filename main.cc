@@ -63,7 +63,7 @@ int main(int argc, char** argv)
             debug = true;
         } else if (arg == "shared") {
             shared = true;
-        } else if (arg == "clang++11") {
+        } else if (arg == "c++11") {
             useClangXX11 = true;
         } else {
             switch ( FileInfo(arg).Type() ) {

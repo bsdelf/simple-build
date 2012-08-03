@@ -58,12 +58,12 @@ void Usage(const string& cmd)
         "\n"
         "\t" + sp + " shared      Generate shared library. (*)\n"
         "\t" + sp + " debug       Build with debug symbols. (*)\n"
-        "\t" + sp + " clang++11   Use clang & libc++. (*)\n"
+        "\t" + sp + " c++11       Use clang & libc++. (*)\n"
         "\n";
 
     cout << ""
         "Note:\n"
-        "\t(*) Just for convenient. You may also use flags to approach the function.\n"
+        "\t* Just for convenient. You may also use flags to approach the function.\n"
         "\n";
 
     cout << ""
