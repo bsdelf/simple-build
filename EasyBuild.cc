@@ -53,6 +53,7 @@ void Usage(const string& cmd)
         "\t" + sp + " ldflag=?    Linker flag.\n"
         //"   " + sp + " with=?,?,? without=?,?,?\n"
         //"   " + sp + " obj=\"outA:dep1, dep2:cmdA; outB:dep1, dep2:cmdB; ...\"\n"
+        "\t" + sp + " jobs=?      Parallel build.\n"
         "\t" + sp + " clean       Clean build output.\n"
         "\t" + sp + " help        Show this help message.\n"
         "\n"

@@ -1,14 +1,10 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <string>
 #include <iostream>
 #include <unordered_set>
 #include <unordered_map>
-#include <future>
-#include <atomic>
 using namespace std;
 
 #include "scx/Dir.hpp"
@@ -17,14 +13,13 @@ using namespace scx;
 
 #include "Tools.h"
 #include "EasyBuild.h"
+#include "Parallel.h"
 
 const unordered_set<string> C_EXT = { "c" };
 const unordered_set<string> CXX_EXT = { "cc", "cxx", "cpp", "C" };
 
 int main(int argc, char** argv)
 {
-    const unsigned int cpus = sysconf(_SC_NPROCESSORS_ONLN);
-
     unordered_map<string, string> ArgTable = {
         { "out", "a.exe" },
         { "with", "" },
@@ -33,7 +28,8 @@ int main(int argc, char** argv)
         { "cxx", "c++" },
         { "flag", "" },
         { "ld", "cc" },
-        { "ldflag", "" }
+        { "ldflag", "" },
+        { "jobs", "0" }
     };
 
     bool shared = false;
@@ -133,7 +129,7 @@ int main(int argc, char** argv)
         // Calculate dependence.
         if ( InitConstUnit(unit, compiler, flag) ) {
             units.push_back(unit);
-            if (!unit.build.empty()) ++buildCount;
+            if ( !unit.build.empty() ) ++buildCount;
         } else {
             cerr << "FATAL: failed to calculate dependence!" << endl;
             cerr << "\tfile: " << file << endl;
@@ -159,41 +155,23 @@ int main(int argc, char** argv)
 #endif
 
     // Let's build them all.
-    // TODO: Parallel build.
     if (!clean) {
-        bool compiled = false;
+        cout << "== Compile ==" << endl;
+        ParallelCompiler pc(units, buildCount);
+        if (pc.Run( stoi(ArgTable["jobs"]) ) != 0)
+            return 1;
+
+        cout << "== Generate ==" << endl;
         string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + " " +
-                       ArgTable["flag"] + " " + ArgTable["ldflag"] + " ";
+                       ArgTable["flag"] + " " + ArgTable["ldflag"] + " " + pc.Objects() + " ";
 
         if (shared)
             ldCmd += "-shared ";
 
-        cout << "== Compile ==" << endl;
-        size_t buildIndex = 0;
-        for (const auto& unit: units) {
-            // If build command isn't empty, do it.
-            if (!unit.build.empty()) {
-                assert(buildCount != 0);
-
-                char buf[] = "[ 100% ] ";
-                int percent = (double)(++buildIndex) / buildCount * 100;
-                ::snprintf(buf, sizeof buf, "[ %3.d%% ] ", percent);
-                cout << buf << unit.build << endl;
-
-                if (::system( unit.build.c_str() ) != 0)
-                    return 2;
-                compiled = true;
-            }
-
-            // Record all our objects.
-            ldCmd += unit.out + " ";
-        }
-
-        cout << "== Generate ==" << endl;
-        if (compiled || !FileInfo(ArgTable["out"]).Exists() ) {
+        if ( (buildCount != 0) || !FileInfo(ArgTable["out"]).Exists() ) {
             cout << ldCmd << endl;
             if (::system( ldCmd.c_str() ) != 0)
-                return 3;
+                return 1;
         }
 
         cout << "== Done! ==" << endl;
