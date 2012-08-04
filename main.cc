@@ -36,6 +36,7 @@ int main(int argc, char** argv)
     bool debug = false;
     bool clean = false;
     bool useClangXX11 = false;
+    bool useThread = false;
     vector<string> with, without, all;
 
     // Parse arguments.
@@ -61,6 +62,8 @@ int main(int argc, char** argv)
             shared = true;
         } else if (arg == "c++11") {
             useClangXX11 = true;
+        } else if (arg == "thread") {
+            useThread = true;
         } else {
             switch ( FileInfo(arg).Type() ) {
             case FileType::Directory:
@@ -91,6 +94,10 @@ int main(int argc, char** argv)
         ArgTable["cc"] = "clang";
         ArgTable["cxx"] = "clang++";
         ArgTable["flag"] += " -std=c++11 -stdlib=libc++ ";
+    }
+
+    if (useThread) {
+        ArgTable["ldflag"] += "-pthread";
     }
 
     if (all.empty())
@@ -163,7 +170,8 @@ int main(int argc, char** argv)
 
         cout << "== Generate ==" << endl;
         string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + " " +
-                       ArgTable["flag"] + " " + ArgTable["ldflag"] + " " + pc.Objects() + " ";
+                       ArgTable["flag"] + " " + ArgTable["ldflag"] + " " + 
+                       pc.Objects() + " ";
 
         if (shared)
             ldCmd += "-shared ";

@@ -60,6 +60,7 @@ void Usage(const string& cmd)
         "\t" + sp + " shared      Generate shared library. (*)\n"
         "\t" + sp + " debug       Build with debug symbols. (*)\n"
         "\t" + sp + " c++11       Use clang & libc++. (*)\n"
+        "\t" + sp + " thread      Link against pthread. (*)\n"
         "\n";
 
     cout << ""

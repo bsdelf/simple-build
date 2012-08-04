@@ -62,6 +62,7 @@ int ParallelCompiler::Worker()
             char buf[] = "[ 100% ] ";
             int percent = (double)bidx / m_BuildCount * 100;
             ::snprintf(buf, sizeof buf, "[ %3.d%% ] ", percent);
+
             m_CoutMutex.lock();
             cout << buf << unit.build << endl;
             m_CoutMutex.unlock();
