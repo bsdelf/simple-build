@@ -12,11 +12,43 @@ using namespace std;
 using namespace scx;
 
 #include "Tools.h"
-#include "EasyBuild.h"
+#include "ConsUnit.h"
 #include "Parallel.h"
 
-const unordered_set<string> C_EXT = { "c" };
-const unordered_set<string> CXX_EXT = { "cc", "cxx", "cpp", "C" };
+static const unordered_set<string> C_EXT = { "c" };
+static const unordered_set<string> CXX_EXT = { "cc", "cxx", "cpp", "C" };
+
+static void Usage(const string& cmd)
+{
+    const string sp(cmd.size(), ' ');
+    cout << ""
+        "Usage:\n"
+        "\t" + cmd + " [ file1 file1 | dir1 dir2 ]\n"
+        "\t" + sp + " cc=?        C compiler.\n"
+        "\t" + sp + " cxx=?       C++ compiler.\n"
+        "\t" + sp + " flag=?      Compiler flag.\n"
+        "\t" + sp + " ldflag=?    Linker flag.\n"
+        //"   " + sp + " with=?,?,? without=?,?,?\n"
+        //"   " + sp + " obj=\"outA:dep1, dep2:cmdA; outB:dep1, dep2:cmdB; ...\"\n"
+        "\t" + sp + " jobs=?      Parallel build.\n"
+        "\t" + sp + " clean       Clean build output.\n"
+        "\t" + sp + " help        Show this help message.\n"
+        "\n"
+        "\t" + sp + " shared      Generate shared library. (*)\n"
+        "\t" + sp + " debug       Build with debug symbols. (*)\n"
+        "\t" + sp + " c++11       Use clang & libc++. (*)\n"
+        "\t" + sp + " thread      Link against pthread. (*)\n"
+        "\n";
+
+    cout << ""
+        "Note:\n"
+        "\t* Just for convenient. You may also use flags to approach the function.\n"
+        "\n";
+
+    cout << ""
+        "Author:\n"
+        "\tYanhui Shen <@diffcat on Twitter>\n";
+}
 
 int main(int argc, char** argv)
 {
@@ -134,7 +166,7 @@ int main(int argc, char** argv)
             continue;
 
         // Calculate dependence.
-        if ( InitConstUnit(unit, compiler, flag) ) {
+        if ( ConsUnit::Init(unit, compiler, flag) ) {
             units.push_back(unit);
             if ( !unit.build.empty() ) ++buildCount;
         } else {

@@ -5,7 +5,7 @@
 #include <vector>
 using namespace std;
 
-#include "EasyBuild.h"
+#include "ConsUnit.h"
 
 class ParallelCompiler
 {
