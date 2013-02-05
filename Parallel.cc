@@ -1,9 +1,9 @@
 #include "Parallel.h"
 
 #include <assert.h>
-#include <unistd.h>
 
 #include <future>
+#include <thread>
 #include <iostream>
 
 ParallelCompiler::ParallelCompiler(const vector<ConsUnit>& units, size_t buildCount):
@@ -14,8 +14,8 @@ ParallelCompiler::ParallelCompiler(const vector<ConsUnit>& units, size_t buildCo
 
 int ParallelCompiler::Run(int jobs)
 {
-    if (jobs == 0)
-        jobs = sysconf(_SC_NPROCESSORS_ONLN);
+    if (jobs <= 0)
+        jobs = std::thread::hardware_concurrency();
 
     vector<future<int>> workers(jobs);
     for (auto& worker: workers) {
