@@ -70,7 +70,7 @@ void Usage(const string& cmd)
 
     cout << ""
         "Author:\n"
-        "\tYanhui Shen <@pagedir on Twitter>\n";
+        "\tYanhui Shen <@diffcat on Twitter>\n";
 }
 
 
