@@ -6,9 +6,8 @@
 #include <thread>
 #include <iostream>
 
-ParallelCompiler::ParallelCompiler(const vector<ConsUnit>& units, size_t buildCount):
-    m_Units(units),
-    m_BuildCount(buildCount)
+ParallelCompiler::ParallelCompiler(const vector<ConsUnit>& units):
+    m_Units(units)
 {
 }
 
@@ -31,51 +30,33 @@ int ParallelCompiler::Run(int jobs)
     return 0;
 }
 
-string ParallelCompiler::Objects() const
-{
-    return m_Objects;
-}
-
 int ParallelCompiler::Worker()
 {
     while (m_Ok) {
         // Take unit.
-        int uidx;
-        int bidx = -1;
+        int uidx = 0;
         {
             std::unique_lock<std::mutex> locker(m_IndexMutex);
-            if (m_UnitIndex >= m_Units.size()) {
-                return 0;
-            } else {
+            if (m_UnitIndex < m_Units.size())
                 uidx = m_UnitIndex++;
-                if ( !m_Units[uidx].cmd.empty() ) {
-                    bidx = ++m_BuildIndex;
-                }
-            }
+            else
+                return 0;
         }
 
         // Try compile it.
         const ConsUnit& unit = m_Units[uidx];
-        if ( bidx != -1 ) {
-            assert(m_BuildCount != 0);
+        char buf[] = "[ 100% ] ";
+        int percent = (double)(uidx+1) / m_Units.size() * 100;
+        ::snprintf(buf, sizeof buf, "[ %3.d%% ] ", percent);
 
-            char buf[] = "[ 100% ] ";
-            int percent = (double)bidx / m_BuildCount * 100;
-            ::snprintf(buf, sizeof buf, "[ %3.d%% ] ", percent);
+        m_CoutMutex.lock();
+        cout << buf << unit.cmd << endl;
+        m_CoutMutex.unlock();
 
-            m_CoutMutex.lock();
-            cout << buf << unit.cmd << endl;
-            m_CoutMutex.unlock();
-
-            if (::system( unit.cmd.c_str() ) != 0) {
-                m_Ok = false;
-                return 1;
-            }
+        if (::system( unit.cmd.c_str() ) != 0) {
+            m_Ok = false;
+            return -1;
         }
-
-        // Record all our objects.
-        std::lock_guard<std::mutex> locker(m_ObjectsMutex);
-        m_Objects += unit.out + " ";
     }
     return 0;
 }
