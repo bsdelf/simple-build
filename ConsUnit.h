@@ -10,7 +10,7 @@ struct ConsUnit
     string in;
 
     string out;
-    string build;
+    string cmd;
 
 #ifdef DEBUG
     vector<string> deps;

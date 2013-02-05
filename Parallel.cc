@@ -48,7 +48,7 @@ int ParallelCompiler::Worker()
                 return 0;
             } else {
                 uidx = m_UnitIndex++;
-                if ( !m_Units[uidx].build.empty() ) {
+                if ( !m_Units[uidx].cmd.empty() ) {
                     bidx = ++m_BuildIndex;
                 }
             }
@@ -64,10 +64,10 @@ int ParallelCompiler::Worker()
             ::snprintf(buf, sizeof buf, "[ %3.d%% ] ", percent);
 
             m_CoutMutex.lock();
-            cout << buf << unit.build << endl;
+            cout << buf << unit.cmd << endl;
             m_CoutMutex.unlock();
 
-            if (::system( unit.build.c_str() ) != 0) {
+            if (::system( unit.cmd.c_str() ) != 0) {
                 m_Ok = false;
                 return 1;
             }

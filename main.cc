@@ -142,7 +142,7 @@ int main(int argc, char** argv)
     // Prepare construct units.
     bool hasCpp = false;
     vector<ConsUnit> units;
-    size_t buildCount = 0;
+    size_t nObject = 0;
 
     for (const auto& file: all) {
         ConsUnit unit(file);
@@ -168,7 +168,7 @@ int main(int argc, char** argv)
         // Calculate dependence.
         if ( ConsUnit::Init(unit, compiler, flag) ) {
             units.push_back(unit);
-            if ( !unit.build.empty() ) ++buildCount;
+            if ( !unit.cmd.empty() ) ++nObject;
         } else {
             cerr << "FATAL: failed to calculate dependence!" << endl;
             cerr << "\tfile: " << file << endl;
@@ -185,7 +185,7 @@ int main(int argc, char** argv)
     // Debug info.
     for (const auto& unit: units) {
         cout << "in: " <<  unit.in << ", " << "out: " << unit.out << endl;
-        cout << "\t" << unit.build << endl;
+        cout << "\t" << unit.cmd << endl;
         cout << "\t";
         for (const auto& dep: unit.deps)
             cout << dep << ", ";
@@ -196,7 +196,7 @@ int main(int argc, char** argv)
     // Let's build them all.
     if (!clean) {
         cout << "== Compile ==" << endl;
-        ParallelCompiler pc(units, buildCount);
+        ParallelCompiler pc(units, nObject);
         if (pc.Run( stoi(ArgTable["jobs"]) ) != 0)
             return 1;
 
@@ -208,7 +208,7 @@ int main(int argc, char** argv)
         if (shared)
             ldCmd += "-shared ";
 
-        if ( (buildCount != 0) || !FileInfo(ArgTable["out"]).Exists() ) {
+        if ( (nObject != 0) || !FileInfo(ArgTable["out"]).Exists() ) {
             cout << ldCmd << endl;
             if (::system( ldCmd.c_str() ) != 0)
                 return 1;

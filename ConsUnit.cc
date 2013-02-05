@@ -30,7 +30,7 @@ bool ConsUnit::Init(ConsUnit& u, const string& c, const string& f)
         }
 
         if (need) {
-            u.build = c + " -o " + u.out + " -c " + u.in + " " + f;
+            u.cmd = c + " -o " + u.out + " -c " + u.in + " " + f;
 #ifdef DEBUG
             u.deps.assign(l.begin()+1, l.end());
 #endif
