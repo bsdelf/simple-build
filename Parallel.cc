@@ -1,10 +1,11 @@
 #include "Parallel.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #include <future>
 #include <thread>
-#include <iostream>
 
 ParallelCompiler::ParallelCompiler(const vector<ConsUnit>& units):
     m_Units(units)
@@ -45,12 +46,10 @@ int ParallelCompiler::Worker()
 
         // Try compile it.
         const ConsUnit& unit = m_Units[uidx];
-        char buf[] = "[ 100% ] ";
         int percent = (double)(uidx+1) / m_Units.size() * 100;
-        ::snprintf(buf, sizeof buf, "[ %3.d%% ] ", percent);
 
         m_CoutMutex.lock();
-        cout << buf << unit.cmd << endl;
+        ::printf("%3.d%% | %s\n", percent, unit.cmd.c_str());
         m_CoutMutex.unlock();
 
         if (::system( unit.cmd.c_str() ) != 0) {
