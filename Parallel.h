@@ -10,7 +10,7 @@ using namespace std;
 class ParallelCompiler
 {
 public:
-    ParallelCompiler(const vector<ConsUnit>& units);
+    explicit ParallelCompiler(const vector<ConsUnit>& units);
 
     int Run(int jobs = 0);
 

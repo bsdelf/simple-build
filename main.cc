@@ -124,7 +124,7 @@ int main(int argc, char** argv)
     }
 
     if (!ArgTable["flag"].empty()) 
-        ArgTable["flag"] = " " + ArgTable["flag"];
+        ArgTable["flag"].insert(0, 1, ' ');
     if (debug)
         ArgTable["flag"] += " -g";
     if (shared)
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
     }
 
     if (!ArgTable["ldflag"].empty()) 
-        ArgTable["ldflag"] = " " + ArgTable["ldflag"];
+        ArgTable["ldflag"].insert(0, 1, ' ');
     if (useThread) {
         ArgTable["ldflag"] += " -pthread";
     }
@@ -171,10 +171,10 @@ int main(int argc, char** argv)
 
         // Calculate dependence.
         if ( ConsUnit::Init(unit, compiler, ArgTable["flag"]) ) {
-            if (!unit.cmd.empty()) {
-                newUnits.push_back(unit);
-            }
             allObjects += " " + unit.out;
+            if (!unit.cmd.empty()) {
+                newUnits.push_back(std::move(unit));
+            }
         } else {
             cerr << "FATAL: failed to calculate dependence!" << endl;
             cerr << "\tfile:     " << file << endl;
