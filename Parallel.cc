@@ -49,7 +49,7 @@ int ParallelCompiler::Worker()
         int percent = (double)(uidx+1) / m_Units.size() * 100;
 
         m_CoutMutex.lock();
-        ::printf("%3.d%% | %s\n", percent, unit.cmd.c_str());
+        ::printf("[ %3.d%% ] %s\n", percent, unit.cmd.c_str());
         m_CoutMutex.unlock();
 
         if (::system( unit.cmd.c_str() ) != 0) {

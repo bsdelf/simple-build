@@ -114,8 +114,9 @@ int main(int argc, char** argv)
 
             default:
             {
-                cout << "WARN: bad argument." << endl;
-                cout << "\targ:" << arg << endl;
+                cerr << "FATAL: bad argument: " << endl;
+                cerr << "arg: " << arg << endl;
+                return -1;
             }
                 break;
             }
@@ -176,9 +177,9 @@ int main(int argc, char** argv)
             allObjects += " " + unit.out;
         } else {
             cerr << "FATAL: failed to calculate dependence!" << endl;
-            cerr << "\tfile: " << file << endl;
-            cerr << "\tcompiler:" << compiler << endl;
-            cerr << "\tflag:" << ArgTable["flag"] << endl;
+            cerr << "\tfile:     " << file << endl;
+            cerr << "\tcompiler: " << compiler << endl;
+            cerr << "\tflag:     " << ArgTable["flag"] << endl;
             return -1;
         }
     }
@@ -199,7 +200,7 @@ int main(int argc, char** argv)
                 cout << endl;
             }
         };
-        cout << "new units:" << endl;
+        cout << "new units: " << endl;
         fn(newUnits);
     }
 #endif
