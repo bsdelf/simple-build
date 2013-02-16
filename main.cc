@@ -101,7 +101,7 @@ int main(int argc, char** argv)
             switch ( FileInfo(arg).Type() ) {
             case FileType::Directory:
             {
-                auto files = Dir::ListTree(arg);
+                auto files = Dir::ListDir(arg);
                 all.reserve(all.size() + files.size());
                 all.insert(all.end(), files.begin(), files.end());
             }
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
     }
 
     if (all.empty())
-        all = Dir::ListTree(".");
+        all = Dir::ListDir(".");
     if (all.empty()) {
         cerr << "FATAL: nothing to build!" << endl;
         return -1;
