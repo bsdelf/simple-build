@@ -208,12 +208,23 @@ int main(int argc, char** argv)
 
     // Let's build them all.
     if (!clean) {
-        cout << "== Compile ==" << endl;
+        if (newUnits.empty())
+            return 0;
+
+        cout << "* Build: ";
+        const size_t nfiles = std::min((size_t)5, newUnits.size());
+        for (size_t i = 0; i < nfiles; ++i) {
+            cout << newUnits[i].in << ((i+1 < nfiles) ? ", " : "");
+        }
+        if (nfiles < newUnits.size()) {
+            cout << " and " << newUnits.size() - nfiles<< " files";
+        }
+        cout << endl;
+
         ParallelCompiler pc(newUnits);
         if (pc.Run( stoi(ArgTable["jobs"]) ) != 0)
             return -1;
 
-        cout << "== Generate ==" << endl;
         string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + 
                        ArgTable["flag"] + ArgTable["ldflag"];
         if (shared)
@@ -221,7 +232,7 @@ int main(int argc, char** argv)
         ldCmd += allObjects;
 
         if ( !newUnits.empty() || !FileInfo(ArgTable["out"]).Exists() ) {
-            cout << ldCmd << endl;
+            cout << "[ Link ] " << ldCmd << endl;
             if (::system( ldCmd.c_str() ) != 0)
                 return -1;
         }
