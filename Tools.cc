@@ -16,7 +16,7 @@ std::string DoCmd(const std::string& cmd)
 
     std::string output;
     char buffer[1024];
-    while ( !feof(pipe) ) {
+    while (!feof(pipe)) {
         if (fgets(buffer, sizeof(buffer), pipe) != NULL)
             output += buffer;
     }

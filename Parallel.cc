@@ -19,12 +19,12 @@ int ParallelCompiler::Run(int jobs)
 
     vector<future<int>> workers(jobs);
     for (auto& worker: workers) {
-        worker = async( bind(&ParallelCompiler::Worker, ref(*this)) );
+        worker = std::async(bind(&ParallelCompiler::Worker, ref(*this)));
     }
 
     for (auto& worker: workers) {
         int ret = 0;
-        if ( ( ret = worker.get() ) != 0)
+        if ((ret = worker.get()) != 0)
             return ret;
     }
 
@@ -52,7 +52,7 @@ int ParallelCompiler::Worker()
         ::printf("[ %3d%% ] %s\n", percent, unit.cmd.c_str());
         m_CoutMutex.unlock();
 
-        if (::system( unit.cmd.c_str() ) != 0) {
+        if (::system(unit.cmd.c_str()) != 0) {
             m_Ok = false;
             return -1;
         }

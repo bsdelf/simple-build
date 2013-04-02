@@ -68,6 +68,7 @@ int main(int argc, char** argv)
     bool shared = false;
     bool debug = false;
     bool clean = false;
+    bool usePipe = true;
     bool useClangXX11 = false;
     bool useThread = false;
     vector<string> with, without, all;
@@ -80,7 +81,7 @@ int main(int argc, char** argv)
         size_t pos = arg.find('=');
         if (pos != string::npos && pos != arg.size()-1) {
             // Update key-value.
-            auto iter = ArgTable.find( arg.substr(0, pos) );
+            auto iter = ArgTable.find(arg.substr(0, pos));
             if (iter != ArgTable.end()) {
                 iter->second = arg.substr(pos+1);
             }         
@@ -98,7 +99,7 @@ int main(int argc, char** argv)
         } else if (arg == "thread") {
             useThread = true;
         } else {
-            switch ( FileInfo(arg).Type() ) {
+            switch (FileInfo(arg).Type()) {
             case FileType::Directory:
             {
                 auto files = Dir::ListDir(arg);
@@ -130,7 +131,9 @@ int main(int argc, char** argv)
         ArgTable["flag"] += " -g";
     if (shared)
         ArgTable["flag"] += " -fPIC";
-
+    if (usePipe) {
+        ArgTable["flag"] += " -pipe";
+    }
     if (useClangXX11) {
         ArgTable["cc"] = "clang";
         ArgTable["cxx"] = "clang++";
@@ -160,7 +163,7 @@ int main(int argc, char** argv)
         string compiler;
 
         // Pick up source file.
-        const string ext( FileInfo(file).Suffix() );
+        const string ext(FileInfo(file).Suffix());
         if (C_EXT.find(ext) != C_EXT.end()) {
             compiler = ArgTable["cc"];
         } else if (CXX_EXT.find(ext) != CXX_EXT.end()) {
@@ -171,7 +174,7 @@ int main(int argc, char** argv)
         }
 
         // Calculate dependence.
-        if ( ConsUnit::Init(unit, compiler, ArgTable["flag"]) ) {
+        if (ConsUnit::Init(unit, compiler, ArgTable["flag"])) {
             allObjects += " " + unit.out;
             if (!unit.cmd.empty()) {
                 newUnits.push_back(std::move(unit));
@@ -222,7 +225,7 @@ int main(int argc, char** argv)
         cout << endl;
 
         ParallelCompiler pc(newUnits);
-        if (pc.Run( stoi(ArgTable["jobs"]) ) != 0)
+        if (pc.Run(::stoi(ArgTable["jobs"])) != 0)
             return -1;
 
         string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + 
@@ -231,9 +234,9 @@ int main(int argc, char** argv)
             ldCmd += " -shared";
         ldCmd += allObjects;
 
-        if ( !newUnits.empty() || !FileInfo(ArgTable["out"]).Exists() ) {
-            cout << "[ Link ] " << ldCmd << endl;
-            if (::system( ldCmd.c_str() ) != 0)
+        if (!newUnits.empty() || !FileInfo(ArgTable["out"]).Exists()) {
+            cout << "- Link - " << ldCmd << endl;
+            if (::system(ldCmd.c_str()) != 0)
                 return -1;
         }
     } else {

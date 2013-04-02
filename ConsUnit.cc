@@ -10,7 +10,7 @@ using namespace scx;
 bool ConsUnit::Init(ConsUnit& u, const string& c, const string& f)
 {
     const string& cmd(c + " -MM " + u.in + " " + f);
-    const string& deps( DoCmd(cmd) );
+    const string& deps(DoCmd(cmd));
     const string& re("(\\s)+(\\\\)*(\\s)*");
     
     const auto& l = RegexSplit(deps, re);
@@ -18,7 +18,7 @@ bool ConsUnit::Init(ConsUnit& u, const string& c, const string& f)
         u.out = l[0].substr(0, l[0].size()-1);
 
         bool need = false;
-        if ( FileInfo(u.out).Exists() ) {
+        if (FileInfo(u.out).Exists()) {
             for (size_t i = 1; i < l.size(); ++i) {
                 if (IsNewer(l[i], u.out)) {
                     need = true;
