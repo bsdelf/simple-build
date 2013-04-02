@@ -54,7 +54,7 @@ static void Usage(const string& cmd)
 int main(int argc, char** argv)
 {
     unordered_map<string, string> ArgTable = {
-        {   "out",      "a.exe" },
+        {   "out",      "b.out" },
         {   "with",     ""      },
         {   "without",  ""      },
         {   "cc",       "cc"    },
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
             switch (FileInfo(arg).Type()) {
             case FileType::Directory:
             {
-                auto files = Dir::ListDir(arg);
+                const auto& files = Dir::ListDir(arg);
                 all.reserve(all.size() + files.size());
                 all.insert(all.end(), files.begin(), files.end());
             }
