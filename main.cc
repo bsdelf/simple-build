@@ -155,6 +155,7 @@ int main(int argc, char** argv)
 
     // Prepare construct units.
     bool hasCpp = false;
+    bool hasOut = FileInfo(ArgTable["out"]).Exists();
     vector<ConsUnit> newUnits;
     string allObjects;
 
@@ -211,36 +212,35 @@ int main(int argc, char** argv)
 
     // Let's build them all.
     if (!clean) {
-        if (newUnits.empty())
-            return 0;
+        if (!newUnits.empty()) {
+            cout << "* Build: ";
+            const size_t nfiles = std::min((size_t)5, newUnits.size());
+            for (size_t i = 0; i < nfiles; ++i) {
+                cout << newUnits[i].in << ((i+1 < nfiles) ? ", " : "");
+            }
+            if (nfiles < newUnits.size()) {
+                cout << " and " << newUnits.size() - nfiles<< " files";
+            }
+            cout << endl;
 
-        cout << "* Build: ";
-        const size_t nfiles = std::min((size_t)5, newUnits.size());
-        for (size_t i = 0; i < nfiles; ++i) {
-            cout << newUnits[i].in << ((i+1 < nfiles) ? ", " : "");
+            ParallelCompiler pc(newUnits);
+            if (pc.Run(::stoi(ArgTable["jobs"])) != 0)
+                return -1;
         }
-        if (nfiles < newUnits.size()) {
-            cout << " and " << newUnits.size() - nfiles<< " files";
-        }
-        cout << endl;
 
-        ParallelCompiler pc(newUnits);
-        if (pc.Run(::stoi(ArgTable["jobs"])) != 0)
-            return -1;
+        if (!hasOut || !newUnits.empty()) {
+            string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + 
+                ArgTable["flag"] + ArgTable["ldflag"];
+            if (shared)
+                ldCmd += " -shared";
+            ldCmd += allObjects;
 
-        string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + 
-                       ArgTable["flag"] + ArgTable["ldflag"];
-        if (shared)
-            ldCmd += " -shared";
-        ldCmd += allObjects;
-
-        if (!newUnits.empty() || !FileInfo(ArgTable["out"]).Exists()) {
             cout << "- Link - " << ldCmd << endl;
             if (::system(ldCmd.c_str()) != 0)
                 return -1;
         }
     } else {
-        const string& cmd = "rm -f " + ArgTable["out"]+ allObjects;
+        const string& cmd = "rm -f " + ArgTable["out"] + allObjects;
         cout << cmd << endl;
         ::system(cmd.c_str());
     }
