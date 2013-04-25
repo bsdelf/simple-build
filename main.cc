@@ -32,6 +32,7 @@ static void Usage(const string& cmd)
         //"   " + sp + " with=?,?,? without=?,?,?\n"
         //"   " + sp + " obj=\"outA:dep1, dep2:cmdA; outB:dep1, dep2:cmdB; ...\"\n"
         "\t" + sp + " jobs=?      Parallel build.\n"
+        "\t" + sp + " nlink       Do not link.\n"
         "\t" + sp + " clean       Clean build output.\n"
         "\t" + sp + " help        Show this help message.\n"
         "\n"
@@ -67,6 +68,7 @@ int main(int argc, char** argv)
 
     bool shared = false;
     bool debug = false;
+    bool nlink = false;
     bool clean = false;
     bool usePipe = true;
     bool useClangXX11 = false;
@@ -88,6 +90,8 @@ int main(int argc, char** argv)
         } else if (arg == "help") {
             Usage(argv[0]);
             return 0;
+        } else if (arg == "nlink") {
+            nlink = true;
         } else if (arg == "clean") {
             clean = true;
         } else if (arg == "debug") {
@@ -228,7 +232,7 @@ int main(int argc, char** argv)
                 return -1;
         }
 
-        if (!hasOut || !newUnits.empty()) {
+        if ((!hasOut || !newUnits.empty()) && !nlink) {
             string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + 
                 ArgTable["flag"] + ArgTable["ldflag"];
             if (shared)
