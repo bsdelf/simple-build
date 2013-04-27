@@ -18,6 +18,7 @@ using namespace scx;
 
 static const unordered_set<string> C_EXT = { "c" };
 static const unordered_set<string> CXX_EXT = { "cc", "cxx", "cpp", "C" };
+static const unordered_set<string> ASM_EXT = { "s", "S", "asm", "nas" };
 
 static void Usage(const string& cmd)
 {
@@ -28,7 +29,11 @@ static void Usage(const string& cmd)
         "\t" + sp + " cc=?        C compiler.\n"
         "\t" + sp + " cxx=?       C++ compiler.\n"
         "\t" + sp + " flag=?      Compiler flag.\n"
+        "\t" + sp + " ld=?        Linker.\n"
         "\t" + sp + " ldflag=?    Linker flag.\n"
+        "\t" + sp + " ldfirst=?   First object file.\n"
+        "\t" + sp + " as=?        Assembler.\n"
+        "\t" + sp + " asflag=?    Assembler flag.\n"
         //"   " + sp + " with=?,?,? without=?,?,?\n"
         //"   " + sp + " obj=\"outA:dep1, dep2:cmdA; outB:dep1, dep2:cmdB; ...\"\n"
         "\t" + sp + " jobs=?      Parallel build.\n"
@@ -64,6 +69,9 @@ int main(int argc, char** argv)
         {   "flag",     ""      },
         {   "ld",       "cc"    },
         {   "ldflag",   ""      },
+        {   "ldfirst",  ""      },
+        {   "as",       "as"    },
+        {   "asflag",   ""      },
         {   "jobs",     "0"     }
     };
 
@@ -173,29 +181,40 @@ int main(int argc, char** argv)
     for (const auto& file: all) {
         ConsUnit unit(file);
         string compiler;
+        string compilerFlag;
 
-        // Pick up source file.
+        // Calculate dependence.
+        bool ok = false;
         const string ext(FileInfo(file).Suffix());
         if (C_EXT.find(ext) != C_EXT.end()) {
             compiler = ArgTable["cc"];
+            compilerFlag = ArgTable["flag"];
+            ok = ConsUnit::InitC(unit, compiler, compilerFlag);
         } else if (CXX_EXT.find(ext) != CXX_EXT.end()) {
-            compiler = ArgTable["cxx"];
             hasCpp = true;
+            compiler = ArgTable["cxx"];
+            compilerFlag = ArgTable["flag"];
+            ok = ConsUnit::InitCpp(unit, compiler, compilerFlag);
+        } else if (ASM_EXT.find(ext) != ASM_EXT.end()) {
+            compiler = ArgTable["as"];
+            compilerFlag = ArgTable["asflag"];
+            ok = ConsUnit::InitAsm(unit, compiler, compilerFlag);
         } else {
             continue;
         }
 
-        // Calculate dependence.
-        if (ConsUnit::Init(unit, compiler, ArgTable["flag"])) {
-            allObjects += " " + unit.out;
-            if (!unit.cmd.empty()) {
+        if (ok) {
+            if (unit.out == ArgTable["ldfirst"])
+                allObjects = " " + unit.out + allObjects;
+            else
+                allObjects += " " + unit.out;
+            if (!unit.cmd.empty())
                 newUnits.push_back(std::move(unit));
-            }
         } else {
             cerr << "FATAL: failed to calculate dependence!" << endl;
-            cerr << "\tfile:     " << file << endl;
-            cerr << "\tcompiler: " << compiler << endl;
-            cerr << "\tflag:     " << ArgTable["flag"] << endl;
+            cerr << "    file:     " << file << endl;
+            cerr << "    compiler: " << compiler << endl;
+            cerr << "    flag:     " << ArgTable["flag"] << endl;
             return -1;
         }
     }
@@ -225,14 +244,12 @@ int main(int argc, char** argv)
     if (!clean) {
         if (!newUnits.empty()) {
             cout << "* Build: ";
-            size_t nfiles = verbose ?
-                newUnits.size() : std::min((size_t)5, newUnits.size());
-            for (size_t i = 0; i < nfiles; ++i) {
-                cout << newUnits[i].in << ((i+1 < nfiles) ? ", " : "");
-            }
-            size_t nleft = newUnits.size() - nfiles;
-            if (nleft > 0) {
-                cout << " and " << nleft << ((nleft > 1) ? " files" : " file");
+            if (!verbose) {
+                cout << newUnits.size() << (newUnits.size() > 1 ? " files" : " file");
+            } else {
+                for (size_t i = 0; i < newUnits.size(); ++i) {
+                    cout << newUnits[i].in << ((i+1 < newUnits.size()) ? ", " : "");
+                }
             }
             cout << endl;
 
@@ -252,8 +269,13 @@ int main(int argc, char** argv)
                 cout << "- Link - " << ArgTable["out"] << endl;
             else
                 cout << "- Link - " << ldCmd << endl;
-            if (::system(ldCmd.c_str()) != 0)
-                return -1;
+            if (::system(ldCmd.c_str()) != 0) {
+                cerr << "FATAL: failed to link!" << endl;
+                cerr << "    file:   " << allObjects << endl;
+                cerr << "    ld:     " << ArgTable["ld"] << endl;
+                cerr << "    ldflag: " << ArgTable["ldflag"] << endl;
+                return -2;
+            }
         }
     } else {
         const string& cmd = "rm -f " + ArgTable["out"] + allObjects;

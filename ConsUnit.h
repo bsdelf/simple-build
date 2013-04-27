@@ -18,7 +18,9 @@ struct ConsUnit
 
     explicit ConsUnit(const string& infile): in(infile) { }
 
-    static bool Init(ConsUnit& unit, const string& compiler, const string& flag);
+    static bool InitC(ConsUnit& unit, const string& compiler, const string& flag);
+    static bool InitCpp(ConsUnit& unit, const string& compiler, const string& flag);
+    static bool InitAsm(ConsUnit& unit, const string& compiler, const string& flag);
 };
 
 #endif
