@@ -1,0 +1,111 @@
+==== build ====
+git clone https://github.com/0x02/eb.git
+cd eb
+./build
+
+==== usage ====
+eb help
+
+==== for example, myself ====
+
+├── ConsUnit.cc
+├── ConsUnit.h
+├── Parallel.cc
+├── Parallel.h
+├── Tools.cc
+├── Tools.h
+├── main.cc
+└── scx
+    ├── Dir.hpp
+    └── FileInfo.hpp
+
+% eb c++11 flag="-Wall -O2" thread out=eb
+* Build: 4 files
+[  25% ] Parallel.cc => Parallel.o
+[  50% ] ConsUnit.cc => ConsUnit.o
+[  75% ] main.cc => main.o
+[ 100% ] Tools.cc => Tools.o
+- Link - eb
+
+% ldd eb
+eb:
+        libc++.so.1 => /usr/lib/libc++.so.1 (0x80083b000)
+        libm.so.5 => /lib/libm.so.5 (0x800af1000)
+        libgcc_s.so.1 => /lib/libgcc_s.so.1 (0x800d10000)
+        libthr.so.3 => /lib/libthr.so.3 (0x800f1d000)
+        libc.so.7 => /lib/libc.so.7 (0x80113f000)
+        libcxxrt.so.1 => /lib/libcxxrt.so.1 (0x80148e000)
+        
+
+==== hmm, a little complicated example... ====
+
+kern
+├── asmfun.asm
+├── binfo.h
+├── color.c
+├── color.h
+├── draw.c
+├── draw.h
+├── font.c
+├── font.h
+├── gdt.asm
+├── gdt.c
+├── gdt.h
+├── idt.asm
+├── idt.c
+├── idt.h
+├── kernel.c
+├── paging.c
+├── paging.h
+├── timer.c
+└── timer.h
+libk
+├── bcd.c
+├── intdef.h
+├── limits.h
+├── limits32.h
+├── printf.c
+├── qdivrem.c
+├── quad.h
+├── stand.h
+└── strlen.c
+
+% ./build
+* Build: 15 files
+[   6% ] libk/bcd.c => bcd.o
+[  13% ] libk/printf.c => printf.o
+[  20% ] libk/qdivrem.c => qdivrem.o
+[  26% ] libk/strlen.c => strlen.o
+[  33% ] kern/asmfun.asm => asmfun.asm.o
+[  40% ] kern/color.c => color.o
+[  46% ] kern/draw.c => draw.o
+[  53% ] kern/font.c => font.o
+[  60% ] kern/gdt.asm => gdt.asm.o
+[  66% ] kern/gdt.c => gdt.o
+[  73% ] kern/idt.asm => idt.asm.o
+[  80% ] kern/idt.c => idt.o
+[  86% ] kern/kernel.c => kernel.o
+[  93% ] kern/paging.c => paging.o
+[ 100% ] kern/timer.c => timer.o
+- Link - kernel.bin
+
+% touch kern/draw.h
+% ./build          
+* Build: 4 files
+[  25% ] kern/draw.c => draw.o
+[  50% ] kern/idt.c => idt.o
+[  75% ] kern/kernel.c => kernel.o
+[ 100% ] kern/timer.c => timer.o
+- Link - kernel.bin
+
+% cat build
+#!/bin/sh
+#
+# ./build
+# ./build clean
+#
+
+eb cc="clang"\
+   flag="-std=c99 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -m32 -c -Os -Ilibk/" \
+   ld="ld" ldflag="-melf_i386_fbsd -s -Ttext 0x80400 -e kstart" ldfirst="kernel.o" \
+   as="yasm" asflag="-w -f elf32" out=kernel.bin libk/* kern/* $1
