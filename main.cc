@@ -148,8 +148,11 @@ int main(int argc, char** argv)
         ArgTable["flag"] += " -std=c++11 -stdlib=libc++";
     }
 
-    if (!ArgTable["ldflag"].empty()) 
+    if (ArgTable["ldflag"].empty()) {
+        ArgTable["ldflag"] = ArgTable["flag"];
+    } else {
         ArgTable["ldflag"].insert(0, 1, ' ');
+    }
     if (useThread) {
         ArgTable["ldflag"] += " -pthread";
     }
@@ -240,8 +243,7 @@ int main(int argc, char** argv)
         }
 
         if ((!hasOut || !newUnits.empty()) && !nlink) {
-            string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + 
-                ArgTable["flag"] + ArgTable["ldflag"];
+            string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + ArgTable["ldflag"];
             if (shared)
                 ldCmd += " -shared";
             ldCmd += allObjects;
