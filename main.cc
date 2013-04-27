@@ -33,6 +33,7 @@ static void Usage(const string& cmd)
         //"   " + sp + " obj=\"outA:dep1, dep2:cmdA; outB:dep1, dep2:cmdB; ...\"\n"
         "\t" + sp + " jobs=?      Parallel build.\n"
         "\t" + sp + " nlink       Do not link.\n"
+        "\t" + sp + " verbose     Verbose output.\n"
         "\t" + sp + " clean       Clean build output.\n"
         "\t" + sp + " help        Show this help message.\n"
         "\n"
@@ -69,6 +70,7 @@ int main(int argc, char** argv)
     bool shared = false;
     bool debug = false;
     bool nlink = false;
+    bool verbose = false;
     bool clean = false;
     bool usePipe = true;
     bool useClangXX11 = false;
@@ -90,6 +92,8 @@ int main(int argc, char** argv)
         } else if (arg == "help") {
             Usage(argv[0]);
             return 0;
+        } else if (arg == "verbose") {
+            verbose = true;
         } else if (arg == "nlink") {
             nlink = true;
         } else if (arg == "clean") {
@@ -218,16 +222,19 @@ int main(int argc, char** argv)
     if (!clean) {
         if (!newUnits.empty()) {
             cout << "* Build: ";
-            const size_t nfiles = std::min((size_t)5, newUnits.size());
+            size_t nfiles = verbose ?
+                newUnits.size() : std::min((size_t)5, newUnits.size());
             for (size_t i = 0; i < nfiles; ++i) {
                 cout << newUnits[i].in << ((i+1 < nfiles) ? ", " : "");
             }
-            if (nfiles < newUnits.size()) {
-                cout << " and " << newUnits.size() - nfiles<< " files";
+            size_t nleft = newUnits.size() - nfiles;
+            if (nleft > 0) {
+                cout << " and " << nleft << ((nleft > 1) ? " files" : " file");
             }
             cout << endl;
 
             ParallelCompiler pc(newUnits);
+            pc.SetVerbose(verbose);
             if (pc.Run(::stoi(ArgTable["jobs"])) != 0)
                 return -1;
         }
@@ -239,7 +246,10 @@ int main(int argc, char** argv)
                 ldCmd += " -shared";
             ldCmd += allObjects;
 
-            cout << "- Link - " << ldCmd << endl;
+            if (!verbose)
+                cout << "- Link - " << ArgTable["out"] << endl;
+            else
+                cout << "- Link - " << ldCmd << endl;
             if (::system(ldCmd.c_str()) != 0)
                 return -1;
         }

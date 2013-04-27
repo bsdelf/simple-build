@@ -13,12 +13,14 @@ public:
     explicit ParallelCompiler(const vector<ConsUnit>& units);
 
     int Run(int jobs = 0);
+    void SetVerbose(bool verbose) { m_Verbose = verbose; }
 
 private:
     int Worker();
 
 private:
     const vector<ConsUnit>& m_Units;
+    bool m_Verbose = false;
 
     size_t m_UnitIndex = 0;
     mutex m_IndexMutex;
