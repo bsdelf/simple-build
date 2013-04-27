@@ -1,10 +1,10 @@
 ==== build ====
 git clone https://github.com/0x02/eb.git
 cd eb
-./build
+clang++ -std=c++11 -stdlib=libc++ -pthread -o eb *.cc
 
 ==== usage ====
-eb help
+./eb help
 
 ==== for example, myself ====
 
