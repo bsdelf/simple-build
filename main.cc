@@ -260,10 +260,10 @@ int main(int argc, char** argv)
         }
 
         if ((!hasOut || !newUnits.empty()) && !nlink) {
-            string ldCmd = ArgTable["ld"] + " -o " + ArgTable["out"] + ArgTable["ldflag"];
+            string ldCmd = ArgTable["ld"] + ArgTable["ldflag"];
             if (shared)
                 ldCmd += " -shared";
-            ldCmd += allObjects;
+            ldCmd += " -o " + ArgTable["out"] + allObjects;
 
             if (!verbose)
                 cout << "- Link - " << ArgTable["out"] << endl;
