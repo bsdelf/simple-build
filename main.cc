@@ -34,16 +34,14 @@ static void Usage(const string& cmd)
         "\t" + sp + " ldfirst=?   First object file.\n"
         "\t" + sp + " as=?        Assembler.\n"
         "\t" + sp + " asflag=?    Assembler flag.\n"
-        //"   " + sp + " with=?,?,? without=?,?,?\n"
-        //"   " + sp + " obj=\"outA:dep1, dep2:cmdA; outB:dep1, dep2:cmdB; ...\"\n"
         "\t" + sp + " jobs=?      Parallel build.\n"
         "\t" + sp + " nlink       Do not link.\n"
         "\t" + sp + " verbose     Verbose output.\n"
         "\t" + sp + " clean       Clean build output.\n"
         "\t" + sp + " help        Show this help message.\n"
         "\n"
-        "\t" + sp + " shared      Generate shared library. (*)\n"
-        "\t" + sp + " debug       Build with debug symbols. (*)\n"
+        "\t" + sp + " shared      Generate useShared library. (*)\n"
+        "\t" + sp + " debug       Build with useDebug symbols. (*)\n"
         "\t" + sp + " c++11       Use clang & libc++. (*)\n"
         "\t" + sp + " thread      Link against pthread. (*)\n"
         "\n";
@@ -62,8 +60,6 @@ int main(int argc, char** argv)
 {
     unordered_map<string, string> ArgTable = {
         {   "out",      "b.out" },
-        {   "with",     ""      },
-        {   "without",  ""      },
         {   "cc",       "cc"    },
         {   "cxx",      "c++"   },
         {   "flag",     ""      },
@@ -75,110 +71,122 @@ int main(int argc, char** argv)
         {   "jobs",     "0"     }
     };
 
-    bool shared = false;
-    bool debug = false;
+    bool clean = false;
     bool nlink = false;
     bool verbose = false;
-    bool clean = false;
-    bool usePipe = true;
-    bool useClangXX11 = false;
-    bool useThread = false;
-    vector<string> with, without, all;
+    vector<string> allsrc;
 
     // Parse arguments.
-    for (int i = 1; i < argc; ++i) {
-        const string& arg(argv[i]);
+    {
+        bool useShared = false;
+        bool useDebug = false;
+        bool usePipe = true;
+        bool useClangXX11 = false;
+        bool useThread = false;
 
-        // So obvisously, file name should not contain '='.
-        size_t pos = arg.find('=');
-        if (pos != string::npos && pos != arg.size()-1) {
-            // Update key-value.
-            auto iter = ArgTable.find(arg.substr(0, pos));
-            if (iter != ArgTable.end()) {
-                iter->second = arg.substr(pos+1);
-            }         
-        } else if (arg == "help") {
-            Usage(argv[0]);
-            return 0;
-        } else if (arg == "verbose") {
-            verbose = true;
-        } else if (arg == "nlink") {
-            nlink = true;
-        } else if (arg == "clean") {
-            clean = true;
-        } else if (arg == "debug") {
-            debug = true;
-        } else if (arg == "shared") {
-            shared = true;
-        } else if (arg == "c++11") {
-            useClangXX11 = true;
-        } else if (arg == "thread") {
-            useThread = true;
-        } else {
-            switch (FileInfo(arg).Type()) {
-            case FileType::Directory:
-            {
-                const auto& files = Dir::ListDir(arg);
-                all.reserve(all.size() + files.size());
-                all.insert(all.end(), files.begin(), files.end());
-            }
-                break;
+        for (int i = 1; i < argc; ++i) {
+            const string& arg(argv[i]);
 
-            case FileType::Regular:
-            {
-                all.push_back(arg);
-            }
-                break;
+            // So obvisously, file name should not contain '='.
+            size_t pos = arg.find('=');
+            if (pos != string::npos && pos != arg.size()-1) {
+                // Update key-value.
+                auto iter = ArgTable.find(arg.substr(0, pos));
+                if (iter != ArgTable.end()) {
+                    iter->second = arg.substr(pos+1);
+                }         
+            } else if (arg == "help") {
+                Usage(argv[0]);
+                return 0;
+            } else if (arg == "verbose") {
+                verbose = true;
+            } else if (arg == "nlink") {
+                nlink = true;
+            } else if (arg == "clean") {
+                clean = true;
+            } else if (arg == "useDebug") {
+                useDebug = true;
+            } else if (arg == "useShared") {
+                useShared = true;
+            } else if (arg == "c++11") {
+                useClangXX11 = true;
+            } else if (arg == "thread") {
+                useThread = true;
+            } else {
+                // Add source files
+                switch (FileInfo(arg).Type()) {
+                case FileType::Directory:
+                    {
+                        const auto& files = Dir::ListDir(arg);
+                        allsrc.reserve(allsrc.size() + files.size());
+                        allsrc.insert(allsrc.end(), files.begin(), files.end());
+                    }
+                    break;
 
-            default:
-            {
-                cerr << "FATAL: bad argument: " << endl;
-                cerr << "arg: " << arg << endl;
-                return -1;
-            }
-                break;
+                case FileType::Regular:
+                    {
+                        allsrc.push_back(arg);
+                    }
+                    break;
+
+                default:
+                    {
+                        cerr << "FATAL: bad argument: " << endl;
+                        cerr << "arg: " << arg << endl;
+                        return -1;
+                    }
+                    break;
+                }
             }
         }
-    }
 
-    if (!ArgTable["flag"].empty()) 
-        ArgTable["flag"].insert(0, 1, ' ');
-    if (debug)
-        ArgTable["flag"] += " -g";
-    if (shared)
-        ArgTable["flag"] += " -fPIC";
-    if (usePipe) {
-        ArgTable["flag"] += " -pipe";
-    }
-    if (useClangXX11) {
-        ArgTable["cc"] = "clang";
-        ArgTable["cxx"] = "clang++";
-        ArgTable["flag"] += " -std=c++11 -stdlib=libc++";
-    }
+        if (!ArgTable["flag"].empty()) 
+            ArgTable["flag"].insert(0, 1, ' ');
 
-    if (ArgTable["ldflag"].empty()) {
-        ArgTable["ldflag"] = ArgTable["flag"];
-    } else {
-        ArgTable["ldflag"].insert(0, 1, ' ');
-    }
-    if (useThread) {
-        ArgTable["ldflag"] += " -pthread";
-    }
+        if (!ArgTable["ldflag"].empty()) {
+            ArgTable["ldflag"].insert(0, 1, ' ');
+        }
 
-    if (all.empty())
-        all = Dir::ListDir(".");
-    if (all.empty()) {
-        cerr << "FATAL: nothing to build!" << endl;
-        return -1;
-    }
+        if (useDebug)
+            ArgTable["flag"] += " -g";
 
+        if (usePipe) {
+            ArgTable["flag"] += " -pipe";
+        }
+
+        if (useShared) {
+            ArgTable["flag"] += " -fPIC";
+            ArgTable["ldflag"] += " -useShared";
+        }
+
+        if (useThread) {
+            ArgTable["ldflag"] += " -pthread";
+        }
+
+        if (useClangXX11) {
+            ArgTable["cc"] = "clang";
+            ArgTable["cxx"] = "clang++";
+            ArgTable["flag"] += " -std=c++11 -stdlib=libc++";
+            ArgTable["ldflag"] += " -stdlib=libc++";
+        }
+
+        // By default we'll take all files under current folder
+        if (allsrc.empty())
+            allsrc = Dir::ListDir(".");
+
+        if (allsrc.empty()) {
+            cerr << "FATAL: nothing to build!" << endl;
+            return -1;
+        }
+    }
+    
     // Prepare construct units.
     bool hasCpp = false;
     bool hasOut = FileInfo(ArgTable["out"]).Exists();
     vector<ConsUnit> newUnits;
     string allObjects;
 
-    for (const auto& file: all) {
+    for (const auto& file: allsrc) {
         ConsUnit unit(file);
         string compiler;
         string compilerFlag;
@@ -242,6 +250,7 @@ int main(int argc, char** argv)
 
     // Let's build them all.
     if (!clean) {
+        // compile
         if (!newUnits.empty()) {
             cout << "* Build: ";
             if (!verbose) {
@@ -259,10 +268,9 @@ int main(int argc, char** argv)
                 return -1;
         }
 
+        // link
         if ((!hasOut || !newUnits.empty()) && !nlink) {
             string ldCmd = ArgTable["ld"] + ArgTable["ldflag"];
-            if (shared)
-                ldCmd += " -shared";
             ldCmd += " -o " + ArgTable["out"] + allObjects;
 
             if (!verbose)
