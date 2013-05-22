@@ -104,9 +104,9 @@ int main(int argc, char** argv)
                 nlink = true;
             } else if (arg == "clean") {
                 clean = true;
-            } else if (arg == "useDebug") {
+            } else if (arg == "debug") {
                 useDebug = true;
-            } else if (arg == "useShared") {
+            } else if (arg == "shared") {
                 useShared = true;
             } else if (arg == "c++11") {
                 useClangXX11 = true;
@@ -156,7 +156,7 @@ int main(int argc, char** argv)
 
         if (useShared) {
             ArgTable["flag"] += " -fPIC";
-            ArgTable["ldflag"] += " -useShared";
+            ArgTable["ldflag"] += " -shared";
         }
 
         if (useThread) {
