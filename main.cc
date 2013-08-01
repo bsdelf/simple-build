@@ -96,7 +96,10 @@ int main(int argc, char** argv)
                 auto iter = ArgTable.find(arg.substr(0, pos));
                 if (iter != ArgTable.end()) {
                     iter->second = arg.substr(pos+1);
-                }         
+                } else {
+                    cout << "Argument ignored!" << endl;
+                    cout << "    Argument: " << arg << endl;
+                }
             } else if (arg == "help") {
                 Usage(argv[0]);
                 return 0;
