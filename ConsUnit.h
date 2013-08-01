@@ -7,6 +7,7 @@ using namespace std;
 
 struct ConsUnit
 {
+    string dir; // output dir
     string in;
 
     string out;
@@ -16,7 +17,7 @@ struct ConsUnit
     vector<string> deps;
 #endif
 
-    explicit ConsUnit(const string& infile): in(infile) { }
+    ConsUnit(const string& workdir, const string& infile): dir(workdir), in(infile) { }
 
     static bool InitC(ConsUnit& unit, const string& compiler, const string& flag);
     static bool InitCpp(ConsUnit& unit, const string& compiler, const string& flag);

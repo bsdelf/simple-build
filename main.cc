@@ -35,6 +35,7 @@ static void Usage(const string& cmd)
         "\t" + sp + " as=?        Assembler.\n"
         "\t" + sp + " asflag=?    Assembler flag.\n"
         "\t" + sp + " jobs=?      Parallel build.\n"
+        "\t" + sp + " workdir=?   Work direcotry.\n"
         "\t" + sp + " nlink       Do not link.\n"
         "\t" + sp + " verbose     Verbose output.\n"
         "\t" + sp + " clean       Clean build output.\n"
@@ -68,7 +69,8 @@ int main(int argc, char** argv)
         {   "ldfirst",  ""      },
         {   "as",       "as"    },
         {   "asflag",   ""      },
-        {   "jobs",     "0"     }
+        {   "jobs",     "0"     },
+        {   "workdir",  ""      }
     };
 
     bool clean = false;
@@ -147,6 +149,25 @@ int main(int argc, char** argv)
             ArgTable["ldflag"].insert(0, 1, ' ');
         }
 
+        if (!ArgTable["workdir"].empty()) {
+            auto& dir = ArgTable["workdir"];
+            if (dir[dir.size()-1] != '/')
+                dir += "/";
+            const auto& info = FileInfo(dir);
+            if (!info.Exists()) {
+                if (!Dir::MakeDir(dir, 0744)) {
+                    cerr << "Failed to create directory!" << endl;
+                    cerr << "    Directory: " << dir << endl;
+                    return -1;
+                }
+            } else if (info.Type() != FileType::Directory) {
+                cerr << "Bad work directory! " << endl;
+                cerr << "    Directory: " << dir << endl;
+                cerr << "    File type: " << FileType::ToString(info.Type()) << endl;
+                return -1;
+            }
+        }
+
         if (useDebug)
             ArgTable["flag"] += " -g";
 
@@ -181,13 +202,14 @@ int main(int argc, char** argv)
     }
     
     // Prepare construct units.
+    // Note: "workdir" & "out" should occur together
     bool hasCpp = false;
-    bool hasOut = FileInfo(ArgTable["out"]).Exists();
+    bool hasOut = FileInfo(ArgTable["workdir"] + ArgTable["out"]).Exists();
     vector<ConsUnit> newUnits;
     string allObjects;
 
     for (const auto& file: allsrc) {
-        ConsUnit unit(file);
+        ConsUnit unit(ArgTable["workdir"], file);
         string compiler;
         string compilerFlag;
 
@@ -271,10 +293,10 @@ int main(int argc, char** argv)
         // link
         if ((!hasOut || !newUnits.empty()) && !nlink) {
             string ldCmd = ArgTable["ld"] + ArgTable["ldflag"];
-            ldCmd += " -o " + ArgTable["out"] + allObjects;
+            ldCmd += " -o " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
 
             if (!verbose)
-                cout << "- Link - " << ArgTable["out"] << endl;
+                cout << "- Link - " << ArgTable["workdir"] + ArgTable["out"] << endl;
             else
                 cout << "- Link - " << ldCmd << endl;
             if (::system(ldCmd.c_str()) != 0) {
@@ -286,7 +308,7 @@ int main(int argc, char** argv)
             }
         }
     } else {
-        const string& cmd = "rm -f " + ArgTable["out"] + allObjects;
+        const string& cmd = "rm -f " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
         cout << cmd << endl;
         ::system(cmd.c_str());
     }
