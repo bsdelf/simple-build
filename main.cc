@@ -36,6 +36,7 @@ static void Usage(const string& cmd)
         "\t" + sp + " asflag=?    Assembler flag.\n"
         "\t" + sp + " jobs=?      Parallel build.\n"
         "\t" + sp + " workdir=?   Work direcotry.\n"
+        "\t" + sp + " out=?       Binary output file name.\n"
         "\t" + sp + " nlink       Do not link.\n"
         "\t" + sp + " verbose     Verbose output.\n"
         "\t" + sp + " clean       Clean build output.\n"
@@ -60,7 +61,6 @@ static void Usage(const string& cmd)
 int main(int argc, char** argv)
 {
     unordered_map<string, string> ArgTable = {
-        {   "out",      "b.out" },
         {   "cc",       "cc"    },
         {   "cxx",      "c++"   },
         {   "flag",     ""      },
@@ -70,7 +70,8 @@ int main(int argc, char** argv)
         {   "as",       "as"    },
         {   "asflag",   ""      },
         {   "jobs",     "0"     },
-        {   "workdir",  ""      }
+        {   "workdir",  ""      },
+        {   "out",      "b.out" }
     };
 
     bool clean = false;
