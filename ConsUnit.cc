@@ -50,6 +50,7 @@ bool ConsUnit::InitCpp(ConsUnit& unit, const string& compiler, const string& fla
 bool ConsUnit::InitAsm(ConsUnit& unit, const string& compiler, const string& flag)
 {
     unit.out = FileInfo(unit.in).BaseName() + ".o";
+    unit.out = unit.dir + unit.out;
 
     if (!FileInfo(unit.out).Exists() || IsNewer(unit.in, unit.out)) {
         unit.cmd = compiler + " " + flag + " -o " + unit.out + " " + unit.in;
