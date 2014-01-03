@@ -274,47 +274,48 @@ int main(int argc, char** argv)
     }
 #endif
 
-    // Let's build them all.
-    if (!clean) {
-        // compile
-        if (!newUnits.empty()) {
-            cout << "* Build: ";
-            if (!verbose) {
-                cout << newUnits.size() << (newUnits.size() > 1 ? " files" : " file");
-            } else {
-                for (size_t i = 0; i < newUnits.size(); ++i) {
-                    cout << newUnits[i].in << ((i+1 < newUnits.size()) ? ", " : "");
-                }
-            }
-            cout << endl;
-
-            ParallelCompiler pc(newUnits);
-            pc.SetVerbose(verbose);
-            if (pc.Run(::stoi(ArgTable["jobs"])) != 0)
-                return -1;
-        }
-
-        // link
-        if ((!hasOut || !newUnits.empty()) && !nlink) {
-            string ldCmd = ArgTable["ld"] + ArgTable["ldflag"];
-            ldCmd += " -o " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
-
-            if (!verbose)
-                cout << "- Link - " << ArgTable["workdir"] + ArgTable["out"] << endl;
-            else
-                cout << "- Link - " << ldCmd << endl;
-            if (::system(ldCmd.c_str()) != 0) {
-                cerr << "FATAL: failed to link!" << endl;
-                cerr << "    file:   " << allObjects << endl;
-                cerr << "    ld:     " << ArgTable["ld"] << endl;
-                cerr << "    ldflag: " << ArgTable["ldflag"] << endl;
-                return -2;
-            }
-        }
-    } else {
+    // clean
+    if (clean) {
         const string& cmd = "rm -f " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
         cout << cmd << endl;
         ::system(cmd.c_str());
+        return 0;
+    }
+
+    // compile
+    if (!newUnits.empty()) {
+        cout << "* Build: ";
+        if (!verbose) {
+            cout << newUnits.size() << (newUnits.size() > 1 ? " files" : " file");
+        } else {
+            for (size_t i = 0; i < newUnits.size(); ++i) {
+                cout << newUnits[i].in << ((i+1 < newUnits.size()) ? ", " : "");
+            }
+        }
+        cout << endl;
+
+        ParallelCompiler pc(newUnits);
+        pc.SetVerbose(verbose);
+        if (pc.Run(::stoi(ArgTable["jobs"])) != 0)
+            return -1;
+    }
+
+    // link
+    if ((!hasOut || !newUnits.empty()) && !nlink) {
+        string ldCmd = ArgTable["ld"] + ArgTable["ldflag"];
+        ldCmd += " -o " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
+
+        if (!verbose)
+            cout << "- Link - " << ArgTable["workdir"] + ArgTable["out"] << endl;
+        else
+            cout << "- Link - " << ldCmd << endl;
+        if (::system(ldCmd.c_str()) != 0) {
+            cerr << "FATAL: failed to link!" << endl;
+            cerr << "    file:   " << allObjects << endl;
+            cerr << "    ld:     " << ArgTable["ld"] << endl;
+            cerr << "    ldflag: " << ArgTable["ldflag"] << endl;
+            return -2;
+        }
     }
 
     return 0;
