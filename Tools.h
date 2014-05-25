@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 
-std::string DoCmd(const std::string& cmd);
+auto DoCmd(const std::string& cmd) -> std::string;
 
-std::vector<std::string> RegexSplit(const std::string& in, const std::string& sre);
+auto RegexSplit(const std::string& in, const std::string& sre) -> std::vector<std::string>;
 
-bool IsNewer(const std::string& f1, const std::string& f2);
+auto IsNewer(const std::string& f1, const std::string& f2) -> bool;
 
 #endif

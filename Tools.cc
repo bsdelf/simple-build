@@ -8,7 +8,7 @@
 #include <regex>
 using namespace std;
 
-std::string DoCmd(const std::string& cmd)
+auto DoCmd(const std::string& cmd) -> std::string 
 {
     FILE* pipe = popen(cmd.c_str(), "r");
     if (!pipe) 
@@ -25,7 +25,7 @@ std::string DoCmd(const std::string& cmd)
     return output;
 }
 
-std::vector<std::string> RegexSplit(const std::string& in, const std::string& sre)
+auto RegexSplit(const std::string& in, const std::string& sre) -> std::vector<std::string>
 {
     std::regex re(sre);
     std::sregex_token_iterator
@@ -34,7 +34,7 @@ std::vector<std::string> RegexSplit(const std::string& in, const std::string& sr
     return { first, last };
 }
 
-bool IsNewer(const std::string& f1, const std::string& f2)
+auto IsNewer(const std::string& f1, const std::string& f2) -> bool
 {
     struct stat s1, s2;
     ::memset(&s1, 0, sizeof(struct stat));
