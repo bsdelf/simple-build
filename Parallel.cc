@@ -23,9 +23,8 @@ int ParallelCompiler::Run(int jobs)
     }
 
     for (auto& worker: workers) {
-        int ret = 0;
-        if ((ret = worker.get()) != 0)
-            return ret;
+        int ret = worker.get();
+        if (ret != 0) return ret;
     }
 
     return 0;
