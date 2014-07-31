@@ -55,7 +55,7 @@ static void Usage(const string& cmd)
 
     cout << ""
         "Author:\n"
-        "\tYanhui Shen <@diffcat on Twitter>\n";
+        "\tYanhui Shen <@bsdelf on Twitter>\n";
 }
 
 int main(int argc, char** argv)
