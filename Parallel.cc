@@ -45,15 +45,15 @@ int ParallelCompiler::Worker()
         }
 
         // Try compile it.
-        const ConsUnit& unit = m_Units[uidx];
+        const auto& unit = m_Units[uidx];
         int percent = (double)(uidx+1) / m_Units.size() * 100;
-
-        m_CoutMutex.lock();
-        if (!m_Verbose)
-            ::printf("[ %3d%% ] %s => %s\n", percent, unit.in.c_str(), unit.out.c_str());
-        else
-            ::printf("[ %3d%% ] %s\n", percent, unit.cmd.c_str());
-        m_CoutMutex.unlock();
+        {
+            std::unique_lock<std::mutex> locker(m_CoutMutex);
+            if (m_Verbose)
+                ::printf("[ %3d%% ] %s\n", percent, unit.cmd.c_str());
+            else
+                ::printf("[ %3d%% ] %s => %s\n", percent, unit.in.c_str(), unit.out.c_str());
+        }
 
         if (::system(unit.cmd.c_str()) != 0) {
             m_Ok = false;
