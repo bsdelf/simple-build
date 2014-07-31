@@ -43,7 +43,7 @@ int ParallelCompiler::Worker()
                 return 0;
         }
 
-        // Try compile it.
+        // Show progress.
         const auto& unit = m_Units[uidx];
         int percent = (double)(uidx+1) / m_Units.size() * 100;
         {
@@ -54,6 +54,7 @@ int ParallelCompiler::Worker()
                 ::printf("[ %3d%% ] %s => %s\n", percent, unit.in.c_str(), unit.out.c_str());
         }
 
+        // Try compile it.
         if (::system(unit.cmd.c_str()) != 0) {
             m_Ok = false;
             return -1;
