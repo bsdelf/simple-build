@@ -37,6 +37,7 @@ static void Usage(const string& cmd)
         "\t" + sp + " jobs=?      Parallel build.\n"
         "\t" + sp + " workdir=?   Work direcotry.\n"
         "\t" + sp + " out=?       Binary output file name.\n"
+        "\t" + sp + " prefix=?    Search head file and library in.\n"
         "\t" + sp + " nlink       Do not link.\n"
         "\t" + sp + " verbose     Verbose output.\n"
         "\t" + sp + " clean       Clean build output.\n"
@@ -78,6 +79,7 @@ int main(int argc, char** argv)
     bool nlink = false;
     bool verbose = false;
     vector<string> allsrc;
+    vector<string> prefixes;
 
     // Parse arguments.
     {
@@ -93,10 +95,14 @@ int main(int argc, char** argv)
             // So obvisously, file name should not contain '='.
             size_t pos = arg.find('=');
             if (pos != string::npos && pos != arg.size()-1) {
+                const auto& key = arg.substr(0, pos);
+                const auto& val = arg.substr(pos+1);
                 // Update key-value.
-                auto iter = ArgTable.find(arg.substr(0, pos));
+                auto iter = ArgTable.find(key);
                 if (iter != ArgTable.end()) {
-                    iter->second = arg.substr(pos+1);
+                    iter->second = val;
+                } else if (key == "prefix") {
+                    prefixes.push_back(val);
                 } else {
                     cout << "Argument ignored!" << endl;
                     cout << "    Argument: " << arg << endl;
@@ -151,6 +157,11 @@ int main(int argc, char** argv)
 
         if (!ArgTable["ldflag"].empty()) {
             ArgTable["ldflag"].insert(0, 1, ' ');
+        }
+
+        for (const auto& prefix: prefixes) {
+            ArgTable["flag"] += " -I " + prefix + "/include";
+            ArgTable["ldflag"] += " -L " + prefix + "/lib";
         }
 
         if (!ArgTable["workdir"].empty()) {
