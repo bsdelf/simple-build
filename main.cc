@@ -43,8 +43,8 @@ static void Usage(const string& cmd)
         "\t" + sp + " clean       Clean build output.\n"
         "\t" + sp + " help        Show this help message.\n"
         "\n"
-        "\t" + sp + " shared      Generate useShared library. (*)\n"
-        "\t" + sp + " debug       Build with useDebug symbols. (*)\n"
+        "\t" + sp + " shared      Generate shared library. (*)\n"
+        "\t" + sp + " debug       Build with debug symbols. (*)\n"
         "\t" + sp + " c++11       Use clang & libc++. (*)\n"
         "\t" + sp + " thread      Link against pthread. (*)\n"
         "\n";
