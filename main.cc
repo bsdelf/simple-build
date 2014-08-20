@@ -86,7 +86,7 @@ int main(int argc, char** argv)
         bool useShared = false;
         bool useDebug = false;
         bool usePipe = true;
-        bool useClangXX11 = false;
+        bool useCXX11 = false;
         bool useThread = false;
 
         for (int i = 1; i < argc; ++i) {
@@ -121,7 +121,7 @@ int main(int argc, char** argv)
             } else if (arg == "shared") {
                 useShared = true;
             } else if (arg == "c++11") {
-                useClangXX11 = true;
+                useCXX11 = true;
             } else if (arg == "thread") {
                 useThread = true;
             } else {
@@ -199,11 +199,8 @@ int main(int argc, char** argv)
             ArgTable["ldflag"] += " -pthread";
         }
 
-        if (useClangXX11) {
-            ArgTable["cc"] = "clang";
-            ArgTable["cxx"] = "clang++";
-            ArgTable["flag"] += " -std=c++11 -stdlib=libc++";
-            ArgTable["ldflag"] += " -stdlib=libc++";
+        if (useCXX11) {
+            ArgTable["flag"] += " -std=c++11";
         }
 
         // By default we'll take all files under current folder
