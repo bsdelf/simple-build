@@ -44,7 +44,7 @@ static void Usage(const string& cmd)
         "\t" + sp + " help        Show this help message.\n"
         "\n"
         "\t" + sp + " shared      Generate shared library. (*)\n"
-        "\t" + sp + " debug       Build with debug symbols. (*)\n"
+        "\t" + sp + " g           Build with debug symbols. (*)\n"
         "\t" + sp + " c++11       Use clang & libc++. (*)\n"
         "\t" + sp + " thread      Link against pthread. (*)\n"
         "\n";
@@ -116,7 +116,7 @@ int main(int argc, char** argv)
                 nlink = true;
             } else if (arg == "clean") {
                 clean = true;
-            } else if (arg == "debug") {
+            } else if (arg == "g") {
                 useDebug = true;
             } else if (arg == "shared") {
                 useShared = true;
