@@ -46,6 +46,7 @@ static void Usage(const string& cmd)
         "\t" + sp + " shared      Generate shared library. (*)\n"
         "\t" + sp + " g           -g (*)\n"
         "\t" + sp + " c++11       -std=c++11 (*)\n"
+        "\t" + sp + " c++1y       -std=c++1y (*)\n"
         "\t" + sp + " thread      Link against pthread. (*)\n"
         "\n";
 
@@ -87,6 +88,7 @@ int main(int argc, char** argv)
         bool useDebug = false;
         bool usePipe = true;
         bool useCXX11 = false;
+        bool useCXX1y = false;
         bool useThread = false;
 
         for (int i = 1; i < argc; ++i) {
@@ -122,6 +124,8 @@ int main(int argc, char** argv)
                 useShared = true;
             } else if (arg == "c++11") {
                 useCXX11 = true;
+            } else if (arg == "c++1y") {
+                useCXX1y = true;
             } else if (arg == "thread") {
                 useThread = true;
             } else {
@@ -201,6 +205,8 @@ int main(int argc, char** argv)
 
         if (useCXX11) {
             ArgTable["flag"] += " -std=c++11";
+        } else if (useCXX1y) {
+            ArgTable["flag"] += " -std=c++1y";
         }
 
         // By default we'll take all files under current folder
