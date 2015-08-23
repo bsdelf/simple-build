@@ -310,7 +310,7 @@ int main(int argc, char** argv)
 
         ParallelCompiler pc(newUnits);
         pc.SetVerbose(verbose);
-        if (pc.Run(::stoi(ArgTable["jobs"])) != 0)
+        if (pc.Run(std::stoi(ArgTable["jobs"])) != 0)
             return -1;
     }
 
