@@ -1,1 +1,3 @@
-c++ -std=c++1y -lpthread -o eb *.cc 
+#!/bin/sh
+
+c++ -std=c++1y -lpthread -Wall -o eb *.cc 
