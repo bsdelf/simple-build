@@ -91,7 +91,7 @@ libk
 [  86% ] kern/kernel.c => kernel.o
 [  93% ] kern/paging.c => paging.o
 [ 100% ] kern/timer.c => timer.o
-- Link - kernel.bin
+- Link - kernel.elf
 
 % touch kern/draw.h
 % ./build.sh
@@ -100,7 +100,7 @@ libk
 [  50% ] kern/idt.c => idt.o
 [  75% ] kern/kernel.c => kernel.o
 [ 100% ] kern/timer.c => timer.o
-- Link - kernel.bin
+- Link - kernel.elf
 
 % cat build.sh
 eb cc=clang flag="-std=c99 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -m32" \
