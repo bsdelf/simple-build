@@ -1,13 +1,15 @@
-==== build ====
+# build
+<pre><code>
 git clone https://github.com/bsdelf/eb.git
 cd eb
-clang++ -std=c++11 -stdlib=libc++ -pthread -o eb *.cc
+./bootstrap.sh
+</code></pre>
+# usage
+`./eb help`
 
-==== usage ====
-./eb help
-
-==== for example, myself ====
-
+### for example, build eb itself
+<pre><code>
+% tree
 ├── ConsUnit.cc
 ├── ConsUnit.h
 ├── Parallel.cc
@@ -19,26 +21,28 @@ clang++ -std=c++11 -stdlib=libc++ -pthread -o eb *.cc
     ├── Dir.hpp
     └── FileInfo.hpp
 
-% eb c++11 flag="-Wall -O2" thread out=eb
+% eb c++1y flag="-Wall -O2" thread workdir=work out=eb
 * Build: 4 files
-[  25% ] Parallel.cc => Parallel.o
-[  50% ] ConsUnit.cc => ConsUnit.o
-[  75% ] main.cc => main.o
-[ 100% ] Tools.cc => Tools.o
-- Link - eb
+[  25% ] Parallel.cc => work/Parallel.o
+[  50% ] ConsUnit.cc => work/ConsUnit.o
+[  75% ] main.cc => work/main.o
+[ 100% ] Tools.cc => work/Tools.o
+- Link - work/eb
 
-% ldd eb
-eb:
-        libc++.so.1 => /usr/lib/libc++.so.1 (0x80083b000)
-        libm.so.5 => /lib/libm.so.5 (0x800af1000)
-        libgcc_s.so.1 => /lib/libgcc_s.so.1 (0x800d10000)
-        libthr.so.3 => /lib/libthr.so.3 (0x800f1d000)
-        libc.so.7 => /lib/libc.so.7 (0x80113f000)
-        libcxxrt.so.1 => /lib/libcxxrt.so.1 (0x80148e000)
-        
+% ldd work/eb
 
-==== hmm, a little complicated example... ====
+work/eb:
+	libc++.so.1 => /usr/lib/libc++.so.1 (0x800841000)
+	libcxxrt.so.1 => /lib/libcxxrt.so.1 (0x800b02000)
+	libm.so.5 => /lib/libm.so.5 (0x800d1e000)
+	libgcc_s.so.1 => /usr/local/lib/gcc48/libgcc_s.so.1 (0x800f47000)
+	libthr.so.3 => /lib/libthr.so.3 (0x80115d000)
+	libc.so.7 => /lib/libc.so.7 (0x801382000)
+</code></pre>
 
+### hmm, a little complicated example...
+<pre><code>
+% tree
 kern
 ├── asmfun.asm
 ├── binfo.h
@@ -98,14 +102,12 @@ libk
 [ 100% ] kern/timer.c => timer.o
 - Link - kernel.bin
 
-% cat build
-#!/bin/sh
-#
-# ./build
-# ./build clean
-#
+% cat build.sh
 
-eb cc="clang"\
-   flag="-std=c99 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -m32 -c -Os -Ilibk/" \
-   ld="ld" ldflag="-melf_i386_fbsd -s -Ttext 0x80400 -e kstart" ldfirst="kernel.o" \
-   as="yasm" asflag="-w -f elf32" out=kernel.bin libk/* kern/* $1
+#!/bin/sh
+
+eb c++1y flag="-Wall -O2" thread workdir=work out=eb $*
+</code></pre>
+
+### Note
+Since OS X Yosemite doesn't support POSIX 2008 specification yet, there is no `st_mtim` field in `struct stat` yet, you'll have to use `st_mtimespec` instead.
