@@ -19,7 +19,7 @@ int ParallelCompiler::Run(int jobs)
 
     vector<future<int>> workers(jobs);
     for (auto& worker: workers) {
-        worker = std::async(bind(&ParallelCompiler::Worker, ref(*this)));
+        worker = std::async(bind(&ParallelCompiler::Work, ref(*this)));
     }
 
     for (auto& worker: workers) {
@@ -30,7 +30,7 @@ int ParallelCompiler::Run(int jobs)
     return 0;
 }
 
-int ParallelCompiler::Worker()
+int ParallelCompiler::Work()
 {
     while (m_Ok) {
         // Take unit.

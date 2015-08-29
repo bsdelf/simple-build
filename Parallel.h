@@ -16,7 +16,7 @@ public:
     void SetVerbose(bool verbose) { m_Verbose = verbose; }
 
 private:
-    int Worker();
+    int Work();
 
 private:
     const vector<ConsUnit>& m_Units;
