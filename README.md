@@ -94,7 +94,7 @@ libk
 - Link - kernel.bin
 
 % touch kern/draw.h
-% ./build          
+% ./build.sh
 * Build: 4 files
 [  25% ] kern/draw.c => draw.o
 [  50% ] kern/idt.c => idt.o
@@ -103,11 +103,11 @@ libk
 - Link - kernel.bin
 
 % cat build.sh
-
-#!/bin/sh
-
-eb c++1y flag="-Wall -O2" thread workdir=work out=eb $*
+	eb cc=clang flag="-std=c99 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -m32" \
+	    as="yasm" asflag="-felf" \
+		ld="ld" ldflag="-melf_i386_fbsd -Ttext 0xc0000000 -e start" \
+		out=kernel.elf libk/* kernel/*
 </code></pre>
 
 ### Note
-Since OS X Yosemite doesn't support POSIX 2008 specification yet, there is no `st_mtim` field in `struct stat` yet, you'll have to use `st_mtimespec` instead.
+Since OS X Yosemite doesn't support POSIX 2008 specification yet, there is no `st_mtim` field in `struct stat`, you'll have to use `st_mtimespec` instead.
