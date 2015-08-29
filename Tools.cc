@@ -8,6 +8,14 @@
 #include <regex>
 using namespace std;
 
+// since Apple doesn't complaint with POSIX:2008
+#ifdef __APPLE__
+#define st_atim		st_atimespec
+#define st_mtim		st_mtimespec
+#define st_ctim		st_ctimespec
+#define st_birthtim	st_birthtimespec
+#endif
+
 auto DoCmd(const std::string& cmd) -> std::string 
 {
     FILE* pipe = popen(cmd.c_str(), "r");
