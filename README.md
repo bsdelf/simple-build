@@ -103,10 +103,10 @@ libk
 - Link - kernel.bin
 
 % cat build.sh
-	eb cc=clang flag="-std=c99 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -m32" \
-	    as="yasm" asflag="-felf" \
-		ld="ld" ldflag="-melf_i386_fbsd -Ttext 0xc0000000 -e start" \
-		out=kernel.elf libk/* kernel/*
+eb cc=clang flag="-std=c99 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -m32" \
+	as="yasm" asflag="-felf" \
+	ld="ld" ldflag="-melf_i386_fbsd -Ttext 0xc0000000 -e start" \
+	out=kernel.elf libk/* kernel/*
 </code></pre>
 
 ### Note
