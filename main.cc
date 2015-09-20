@@ -25,15 +25,17 @@ static void Usage(const string& cmd)
     const string sp(cmd.size(), ' ');
     cout << ""
         "Usage:\n"
-        "\t" + cmd + " [ file1 file1 | dir1 dir2 ]\n"
+        "\t" + cmd + " [ file1 file2 ... | dir1 dir2 ... ]\n"
+        "\t" + sp + " as=?        Assembler.\n"
+        "\t" + sp + " asflag=?    Assembler flag.\n"
         "\t" + sp + " cc=?        C compiler.\n"
-        "\t" + sp + " cxx=?       C++ compiler.\n"
-        "\t" + sp + " flag=?      Compiler flag.\n"
+        "\t" + sp + " ccflag=?    C Compiler flag.\n"
+        "\t" + sp + " cpp=?       C++ compiler.\n"
+        "\t" + sp + " cppflag=?   C++ Compiler flag.\n"
+        "\t" + sp + " flag=?      Compiler Common flag.\n"
         "\t" + sp + " ld=?        Linker.\n"
         "\t" + sp + " ldflag=?    Linker flag.\n"
         "\t" + sp + " ldfirst=?   First object file.\n"
-        "\t" + sp + " as=?        Assembler.\n"
-        "\t" + sp + " asflag=?    Assembler flag.\n"
         "\t" + sp + " jobs=?      Parallel build.\n"
         "\t" + sp + " workdir=?   Work direcotry.\n"
         "\t" + sp + " out=?       Binary output file name.\n"
@@ -46,7 +48,9 @@ static void Usage(const string& cmd)
         "\t" + sp + " shared      Generate shared library. (*)\n"
         "\t" + sp + " g           -g (*)\n"
         "\t" + sp + " c++11       -std=c++11 (*)\n"
+        "\t" + sp + " c++14       -std=c++14 (*)\n"
         "\t" + sp + " c++1y       -std=c++1y (*)\n"
+        "\t" + sp + " c++1z       -std=c++1z (*)\n"
         "\t" + sp + " thread      Link against pthread. (*)\n"
         "\n";
 
@@ -63,14 +67,16 @@ static void Usage(const string& cmd)
 int main(int argc, char** argv)
 {
     unordered_map<string, string> ArgTable = {
+        {   "as",       "as"    },
+        {   "asflag",   ""      },
         {   "cc",       "cc"    },
-        {   "cxx",      "c++"   },
+        {   "ccflag",   ""      },
+        {   "cpp",      "c++"   },
+        {   "cppflag",  ""      },
         {   "flag",     ""      },
         {   "ld",       "cc"    },
         {   "ldflag",   ""      },
         {   "ldfirst",  ""      },
-        {   "as",       "as"    },
-        {   "asflag",   ""      },
         {   "jobs",     "0"     },
         {   "workdir",  ""      },
         {   "out",      "b.out" }
@@ -87,8 +93,12 @@ int main(int argc, char** argv)
         bool useShared = false;
         bool useDebug = false;
         bool usePipe = true;
+        bool useC89 = false;
+        bool useC99 = true;
         bool useCXX11 = false;
+        bool useCXX14 = false;
         bool useCXX1y = false;
+        bool useCXX1z = false;
         bool useThread = false;
 
         for (int i = 1; i < argc; ++i) {
@@ -122,10 +132,18 @@ int main(int argc, char** argv)
                 useDebug = true;
             } else if (arg == "shared") {
                 useShared = true;
+            } else if (arg == "c89") {
+                useC89 = true;
+            } else if (arg == "c99") {
+                useC99 = true;
             } else if (arg == "c++11") {
                 useCXX11 = true;
+            } else if (arg == "c++14") {
+                useCXX14 = true;
             } else if (arg == "c++1y") {
                 useCXX1y = true;
+            } else if (arg == "c++1z") {
+                useCXX1z = true;
             } else if (arg == "thread") {
                 useThread = true;
             } else {
@@ -156,18 +174,6 @@ int main(int argc, char** argv)
             }
         }
 
-        if (!ArgTable["flag"].empty()) 
-            ArgTable["flag"].insert(0, 1, ' ');
-
-        if (!ArgTable["ldflag"].empty()) {
-            ArgTable["ldflag"].insert(0, 1, ' ');
-        }
-
-        for (const auto& prefix: prefixes) {
-            ArgTable["flag"] += " -I " + prefix + "/include";
-            ArgTable["ldflag"] += " -L " + prefix + "/lib";
-        }
-
         if (!ArgTable["workdir"].empty()) {
             auto& dir = ArgTable["workdir"];
             if (dir[dir.size()-1] != '/')
@@ -187,8 +193,21 @@ int main(int argc, char** argv)
             }
         }
 
-        if (useDebug)
+        //-------------------------------------------------------------
+        // additional compiler common flag
+
+        if (!ArgTable["flag"].empty()) {
+            ArgTable["flag"].insert(0, 1, ' ');
+        }
+
+        for (const auto& prefix: prefixes) {
+            ArgTable["flag"] += " -I " + prefix + "/include";
+            ArgTable["ldflag"] += " -L " + prefix + "/lib";
+        }
+
+        if (useDebug) {
             ArgTable["flag"] += " -g";
+        }
 
         if (usePipe) {
             ArgTable["flag"] += " -pipe";
@@ -199,19 +218,54 @@ int main(int argc, char** argv)
             ArgTable["ldflag"] += " -shared";
         }
 
+        //-------------------------------------------------------------
+        // additional link flag
+
+        if (!ArgTable["ldflag"].empty()) {
+            ArgTable["ldflag"].insert(0, 1, ' ');
+        }
+
         if (useThread) {
             ArgTable["ldflag"] += " -pthread";
         }
+        
+        //-------------------------------------------------------------
+        // additional c/c++ compiler flag
 
-        if (useCXX11) {
-            ArgTable["flag"] += " -std=c++11";
-        } else if (useCXX1y) {
-            ArgTable["flag"] += " -std=c++1y";
+        if (ArgTable["ccflag"].empty()) {
+            ArgTable["ccflag"] = ArgTable["flag"];
+        } else {
+            ArgTable["ccflag"].insert(0, ArgTable["flag"] + " ");
         }
 
-        // By default we'll take all files under current folder
-        if (allsrc.empty())
+        if (useC89) {
+            ArgTable["ccflag"] += " -std=c89";
+        } else if (useC99) {
+            ArgTable["ccflag"] += " -std=c99";
+        }
+
+        if (ArgTable["cppflag"].empty()) {
+            ArgTable["cppflag"] = ArgTable["flag"];
+        } else {
+            ArgTable["cppflag"].insert(0, ArgTable["flag"] + " ");
+        }
+
+        if (useCXX11) {
+            ArgTable["cppflag"] += " -std=c++11";
+        } else if (useCXX14) {
+            ArgTable["cppflag"] += " -std=c++14";
+        } else if (useCXX1y) {
+            ArgTable["cppflag"] += " -std=c++1y";
+        } else if (useCXX1z) {
+            ArgTable["cppflag"] += " -std=c++1z";
+        }
+
+        //-------------------------------------------------------------
+
+        // if unspecified, take all files under current folder
+        if (allsrc.empty()) {
             allsrc = Dir::ListDir(".");
+        }
 
         if (allsrc.empty()) {
             cerr << "FATAL: nothing to build!" << endl;
@@ -236,12 +290,12 @@ int main(int argc, char** argv)
         const string ext(FileInfo(file).Suffix());
         if (C_EXT.find(ext) != C_EXT.end()) {
             compiler = ArgTable["cc"];
-            compilerFlag = ArgTable["flag"];
+            compilerFlag = ArgTable["ccflag"];
             ok = ConsUnit::InitC(unit, compiler, compilerFlag);
         } else if (CXX_EXT.find(ext) != CXX_EXT.end()) {
             hasCpp = true;
-            compiler = ArgTable["cxx"];
-            compilerFlag = ArgTable["flag"];
+            compiler = ArgTable["cpp"];
+            compilerFlag = ArgTable["cppflag"];
             ok = ConsUnit::InitCpp(unit, compiler, compilerFlag);
         } else if (ASM_EXT.find(ext) != ASM_EXT.end()) {
             compiler = ArgTable["as"];
@@ -263,12 +317,15 @@ int main(int argc, char** argv)
             cerr << "    file:     " << file << endl;
             cerr << "    compiler: " << compiler << endl;
             cerr << "    flag:     " << ArgTable["flag"] << endl;
+            cerr << "    ccflag:   " << ArgTable["ccflag"] << endl;
+            cerr << "    cppflag:  " << ArgTable["cppflag"] << endl;
             return -1;
         }
     }
 
-    if (hasCpp)
-        ArgTable["ld"] = ArgTable["cxx"];
+    if (hasCpp) {
+        ArgTable["ld"] = ArgTable["cpp"];
+    }
 
 #ifdef DEBUG
     // Debug info.
