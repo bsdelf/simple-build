@@ -30,8 +30,8 @@ static void Usage(const string& cmd)
         "\t" + sp + " asflag=?    Assembler flag.\n"
         "\t" + sp + " cc=?        C compiler.\n"
         "\t" + sp + " ccflag=?    C Compiler flag.\n"
-        "\t" + sp + " cpp=?       C++ compiler.\n"
-        "\t" + sp + " cppflag=?   C++ Compiler flag.\n"
+        "\t" + sp + " cxx=?       C++ compiler.\n"
+        "\t" + sp + " cxxflag=?   C++ Compiler flag.\n"
         "\t" + sp + " flag=?      Compiler Common flag.\n"
         "\t" + sp + " ld=?        Linker.\n"
         "\t" + sp + " ldflag=?    Linker flag.\n"
@@ -71,8 +71,8 @@ int main(int argc, char** argv)
         {   "asflag",   ""      },
         {   "cc",       "cc"    },
         {   "ccflag",   ""      },
-        {   "cpp",      "c++"   },
-        {   "cppflag",  ""      },
+        {   "cxx",      "c++"   },
+        {   "cxxflag",  ""      },
         {   "flag",     ""      },
         {   "ld",       "cc"    },
         {   "ldflag",   ""      },
@@ -244,20 +244,20 @@ int main(int argc, char** argv)
             ArgTable["ccflag"] += " -std=c99";
         }
 
-        if (ArgTable["cppflag"].empty()) {
-            ArgTable["cppflag"] = ArgTable["flag"];
+        if (ArgTable["cxxflag"].empty()) {
+            ArgTable["cxxflag"] = ArgTable["flag"];
         } else {
-            ArgTable["cppflag"].insert(0, ArgTable["flag"] + " ");
+            ArgTable["cxxflag"].insert(0, ArgTable["flag"] + " ");
         }
 
         if (useCXX11) {
-            ArgTable["cppflag"] += " -std=c++11";
+            ArgTable["cxxflag"] += " -std=c++11";
         } else if (useCXX14) {
-            ArgTable["cppflag"] += " -std=c++14";
+            ArgTable["cxxflag"] += " -std=c++14";
         } else if (useCXX1y) {
-            ArgTable["cppflag"] += " -std=c++1y";
+            ArgTable["cxxflag"] += " -std=c++1y";
         } else if (useCXX1z) {
-            ArgTable["cppflag"] += " -std=c++1z";
+            ArgTable["cxxflag"] += " -std=c++1z";
         }
 
         //-------------------------------------------------------------
@@ -294,8 +294,8 @@ int main(int argc, char** argv)
             ok = ConsUnit::InitC(unit, compiler, compilerFlag);
         } else if (CXX_EXT.find(ext) != CXX_EXT.end()) {
             hasCpp = true;
-            compiler = ArgTable["cpp"];
-            compilerFlag = ArgTable["cppflag"];
+            compiler = ArgTable["cxx"];
+            compilerFlag = ArgTable["cxxflag"];
             ok = ConsUnit::InitCpp(unit, compiler, compilerFlag);
         } else if (ASM_EXT.find(ext) != ASM_EXT.end()) {
             compiler = ArgTable["as"];
@@ -318,13 +318,13 @@ int main(int argc, char** argv)
             cerr << "    compiler: " << compiler << endl;
             cerr << "    flag:     " << ArgTable["flag"] << endl;
             cerr << "    ccflag:   " << ArgTable["ccflag"] << endl;
-            cerr << "    cppflag:  " << ArgTable["cppflag"] << endl;
+            cerr << "    cxxflag:  " << ArgTable["cxxflag"] << endl;
             return -1;
         }
     }
 
     if (hasCpp) {
-        ArgTable["ld"] = ArgTable["cpp"];
+        ArgTable["ld"] = ArgTable["cxx"];
     }
 
 #ifdef DEBUG
