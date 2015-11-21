@@ -45,13 +45,15 @@ static void Usage(const string& cmd)
         "\t" + sp + " clean       Clean build output.\n"
         "\t" + sp + " help        Show this help message.\n"
         "\n"
+        "\t" + sp + " thread      Link against pthread. (*)\n"
         "\t" + sp + " shared      Generate shared library. (*)\n"
-        "\t" + sp + " g           -g (*)\n"
+        "\n"
+        "\t" + sp + " release     -DNDEBUG (*)\n"
+        "\t" + sp + " debug       -g (*)\n"
         "\t" + sp + " c++11       -std=c++11 (*)\n"
         "\t" + sp + " c++14       -std=c++14 (*)\n"
         "\t" + sp + " c++1y       -std=c++1y (*)\n"
         "\t" + sp + " c++1z       -std=c++1z (*)\n"
-        "\t" + sp + " thread      Link against pthread. (*)\n"
         "\n";
 
     cout << ""
@@ -90,7 +92,9 @@ int main(int argc, char** argv)
 
     // Parse arguments.
     {
+        bool useThread = false;
         bool useShared = false;
+        bool useRelease = false;
         bool useDebug = false;
         bool usePipe = true;
         bool useC89 = false;
@@ -99,7 +103,6 @@ int main(int argc, char** argv)
         bool useCXX14 = false;
         bool useCXX1y = false;
         bool useCXX1z = false;
-        bool useThread = false;
 
         for (int i = 1; i < argc; ++i) {
             const string& arg(argv[i]);
@@ -128,7 +131,11 @@ int main(int argc, char** argv)
                 nlink = true;
             } else if (arg == "clean") {
                 clean = true;
-            } else if (arg == "g") {
+            } else if (arg == "thread") {
+                useThread = true;
+            } else if (arg == "release") {
+                useRelease = true;
+            } else if (arg == "debug") {
                 useDebug = true;
             } else if (arg == "shared") {
                 useShared = true;
@@ -144,8 +151,6 @@ int main(int argc, char** argv)
                 useCXX1y = true;
             } else if (arg == "c++1z") {
                 useCXX1z = true;
-            } else if (arg == "thread") {
-                useThread = true;
             } else {
                 // Add source files
                 switch (FileInfo(arg).Type()) {
@@ -205,7 +210,9 @@ int main(int argc, char** argv)
             ArgTable["ldflag"] += " -L " + prefix + "/lib";
         }
 
-        if (useDebug) {
+        if (useRelease) {
+            ArgTable["flag"] += " -DNDEBUG";
+        } else if (useDebug) {
             ArgTable["flag"] += " -g";
         }
 
