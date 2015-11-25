@@ -45,20 +45,16 @@ static void Usage(const string& cmd)
         "\t" + sp + " clean       Clean build output.\n"
         "\t" + sp + " help        Show this help message.\n"
         "\n"
-        "\t" + sp + " thread      Link against pthread. (*)\n"
-        "\t" + sp + " shared      Generate shared library. (*)\n"
+        "\t" + sp + " thread      Link against pthread.\n"
+        "\t" + sp + " shared      Generate shared library.\n"
         "\n"
-        "\t" + sp + " release     -DNDEBUG (*)\n"
-        "\t" + sp + " debug       -g (*)\n"
-        "\t" + sp + " c++11       -std=c++11 (*)\n"
-        "\t" + sp + " c++14       -std=c++14 (*)\n"
-        "\t" + sp + " c++1y       -std=c++1y (*)\n"
-        "\t" + sp + " c++1z       -std=c++1z (*)\n"
-        "\n";
-
-    cout << ""
-        "Note:\n"
-        "\t* Just for convenient. You may also use flags to approach the function.\n"
+        "\t" + sp + " strict      -Wall -Werror\n"
+        "\t" + sp + " release     -DNDEBUG\n"
+        "\t" + sp + " debug       -g\n"
+        "\t" + sp + " c++11       -std=c++11\n"
+        "\t" + sp + " c++14       -std=c++14\n"
+        "\t" + sp + " c++1y       -std=c++1y\n"
+        "\t" + sp + " c++1z       -std=c++1z\n"
         "\n";
 
     cout << ""
@@ -96,6 +92,7 @@ int main(int argc, char** argv)
         bool useShared = false;
         bool useRelease = false;
         bool useDebug = false;
+        bool useStrict = false;
         bool usePipe = true;
         bool useC89 = false;
         bool useC99 = true;
@@ -133,6 +130,8 @@ int main(int argc, char** argv)
                 clean = true;
             } else if (arg == "thread") {
                 useThread = true;
+            } else if (arg == "strict") {
+                useStrict = true;
             } else if (arg == "release") {
                 useRelease = true;
             } else if (arg == "debug") {
@@ -208,6 +207,10 @@ int main(int argc, char** argv)
         for (const auto& prefix: prefixes) {
             ArgTable["flag"] += " -I " + prefix + "/include";
             ArgTable["ldflag"] += " -L " + prefix + "/lib";
+        }
+
+        if (useStrict) {
+            ArgTable["flag"] += " -Wall -Werror";
         }
 
         if (useRelease) {
