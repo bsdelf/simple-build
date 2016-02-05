@@ -1,14 +1,15 @@
 # build
-<pre><code>
+```
 git clone https://github.com/bsdelf/eb.git
 cd eb
 ./bootstrap.sh
-</code></pre>
+```
+
 # usage
 `./eb help`
 
 ### for example, build eb itself
-<pre><code>
+```
 % tree
 ├── ConsUnit.cc
 ├── ConsUnit.h
@@ -38,10 +39,10 @@ work/eb:
 	libgcc_s.so.1 => /usr/local/lib/gcc48/libgcc_s.so.1 (0x800f47000)
 	libthr.so.3 => /lib/libthr.so.3 (0x80115d000)
 	libc.so.7 => /lib/libc.so.7 (0x801382000)
-</code></pre>
+```
 
 ### hmm, a little complicated example...
-<pre><code>
+```
 % tree
 kern
 ├── asmfun.asm
@@ -107,7 +108,7 @@ eb cc=clang flag="-std=c99 -nostdlib -nostdinc -fno-builtin -fno-stack-protector
 	as="yasm" asflag="-felf" \
 	ld="ld" ldflag="-melf_i386_fbsd -Ttext 0xc0000000 -e start" \
 	out=kernel.elf libk/* kernel/*
-</code></pre>
+```
 
 ### Note
-Since OS X Yosemite doesn't support POSIX 2008 specification yet, there is no `st_mtim` field in `struct stat`, you'll have to use `st_mtimespec` instead.
+Since OS X EI Capitan doesn't support POSIX 2008 specification yet, there is no `st_mtim` field in `struct stat`, you'll have to use `st_mtimespec` instead.
