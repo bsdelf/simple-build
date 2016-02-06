@@ -37,10 +37,8 @@ int ParallelCompiler::Work()
         int uidx = 0;
         {
             std::unique_lock<std::mutex> locker(m_IndexMutex);
-            if (m_UnitIndex < m_Units.size())
-                uidx = m_UnitIndex++;
-            else
-                return 0;
+            if (m_UnitIndex >= m_Units.size()) return 0;
+            uidx = m_UnitIndex++;
         }
 
         // Show progress.
@@ -48,10 +46,11 @@ int ParallelCompiler::Work()
         int percent = (double)(uidx+1) / m_Units.size() * 100;
         {
             std::unique_lock<std::mutex> locker(m_CoutMutex);
-            if (m_Verbose)
+            if (m_Verbose) {
                 ::printf("[ %3d%% ] %s\n", percent, unit.cmd.c_str());
-            else
+            } else {
                 ::printf("[ %3d%% ] %s => %s\n", percent, unit.in.c_str(), unit.out.c_str());
+            }
         }
 
         // Try compile it.

@@ -1,5 +1,4 @@
-#ifndef CONSUNIT_H
-#define CONSUNIT_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -23,5 +22,3 @@ struct ConsUnit
     static bool InitCpp(ConsUnit& unit, const string& compiler, const string& flag);
     static bool InitAsm(ConsUnit& unit, const string& compiler, const string& flag);
 };
-
-#endif

@@ -318,12 +318,14 @@ int main(int argc, char** argv)
         }
 
         if (ok) {
-            if (unit.out == ArgTable["ldfirst"])
+            if (unit.out == ArgTable["ldfirst"]) {
                 allObjects = " " + unit.out + allObjects;
-            else
+            } else {
                 allObjects += " " + unit.out;
-            if (!unit.cmd.empty())
+            }
+            if (!unit.cmd.empty()) {
                 newUnits.push_back(std::move(unit));
+            }
         } else {
             cerr << "FATAL: failed to calculate dependence!" << endl;
             cerr << "    file:     " << file << endl;
@@ -342,7 +344,7 @@ int main(int argc, char** argv)
 #ifdef DEBUG
     // Debug info.
     {
-        auto fn = [](const vector<ConsUnit>& units)->void {
+        auto fn = [](const vector<ConsUnit>& units) {
             for (const auto& unit: units) {
                 cout << "in: " <<  unit.in << ", " << "out: " << unit.out << endl;
                 cout << "\t" << unit.cmd << endl;
@@ -379,8 +381,9 @@ int main(int argc, char** argv)
 
         ParallelCompiler pc(newUnits);
         pc.SetVerbose(verbose);
-        if (pc.Run(std::stoi(ArgTable["jobs"])) != 0)
+        if (pc.Run(std::stoi(ArgTable["jobs"])) != 0) {
             return -1;
+        }
     }
 
     // link
@@ -388,10 +391,11 @@ int main(int argc, char** argv)
         string ldCmd = ArgTable["ld"] + ArgTable["ldflag"];
         ldCmd += " -o " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
 
-        if (!verbose)
+        if (!verbose) {
             cout << "- Link - " << ArgTable["workdir"] + ArgTable["out"] << endl;
-        else
+        } else {
             cout << "- Link - " << ldCmd << endl;
+        }
         if (::system(ldCmd.c_str()) != 0) {
             cerr << "FATAL: failed to link!" << endl;
             cerr << "    file:   " << allObjects << endl;

@@ -1,5 +1,4 @@
-#ifndef PARALLEL_H
-#define PARALLEL_H
+#pragma once
 
 #include <mutex>
 #include <vector>
@@ -29,6 +28,3 @@ private:
 
     bool m_Ok = true;
 };
-
-
-#endif
