@@ -236,7 +236,9 @@ int main(int argc, char** argv)
         }
 
         if (useThread) {
+#ifndef __APPLE__
             ArgTable["ldflag"] += " -pthread";
+#endif
         }
         
         //-------------------------------------------------------------
