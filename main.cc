@@ -210,7 +210,7 @@ int main(int argc, char** argv)
         }
 
         if (useStrict) {
-            ArgTable["flag"] += " -Wall -Werror";
+            ArgTable["flag"] += " -Wall -Wextra -Werror";
         }
 
         if (useRelease) {
