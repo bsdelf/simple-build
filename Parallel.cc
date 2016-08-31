@@ -19,7 +19,9 @@ int ParallelCompiler::Run(int jobs)
 
     vector<future<int>> workers(jobs);
     for (auto& worker: workers) {
-        worker = std::async(bind(&ParallelCompiler::Work, ref(*this)));
+        worker = std::async(std::launch::async, [this]() {
+            return Work();
+        });
     }
 
     for (auto& worker: workers) {
