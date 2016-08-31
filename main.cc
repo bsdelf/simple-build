@@ -48,7 +48,7 @@ static void Usage(const string& cmd)
         "\t" + sp + " thread      link against pthread\n"
         "\t" + sp + " shared      generate shared library\n"
         "\n"
-        "\t" + sp + " strict      -Wall -Werror\n"
+        "\t" + sp + " strict      -Wall -Wextra -Werror\n"
         "\t" + sp + " release     -DNDEBUG\n"
         "\t" + sp + " debug       -g\n"
         "\t" + sp + " c++11       -std=c++11\n"
