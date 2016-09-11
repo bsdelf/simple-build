@@ -6,7 +6,6 @@
 #include <sys/stat.h>
 
 #include <regex>
-using namespace std;
 
 // since Apple doesn't complaint with POSIX:2008
 #ifdef __APPLE__
@@ -16,28 +15,29 @@ using namespace std;
 #define st_birthtim	st_birthtimespec
 #endif
 
-auto DoCmd(const std::string& cmd) -> std::string 
+auto DoCmd(const std::string& cmd) -> std::string
 {
-    FILE* pipe = popen(cmd.c_str(), "r");
-    if (!pipe) 
-        return "";
-
     std::string output;
-    char buffer[1024];
-    while (!feof(pipe)) {
-        if (fgets(buffer, sizeof(buffer), pipe) != NULL)
-            output += buffer;
+
+    FILE* pipe = ::popen(cmd.c_str(), "r");
+    if (pipe) {
+        while (!::feof(pipe)) {
+            char chunk[1024];
+            if (::fgets(chunk, sizeof(chunk), pipe) != nullptr) {
+                output += chunk;
+            }
+        }
+        ::pclose(pipe);
     }
-    pclose(pipe);
 
     return output;
 }
 
-auto RegexSplit(const std::string& in, const std::string& sre) -> std::vector<std::string>
+auto RegexSplit(const std::string& str, const std::string& pattern) -> std::vector<std::string>
 {
-    std::regex re(sre);
+    std::regex re { pattern };
     std::sregex_token_iterator
-        first { in.begin(), in.end(), re, -1 },
+        first { str.begin(), str.end(), re, -1 },
         last;
     return { first, last };
 }
