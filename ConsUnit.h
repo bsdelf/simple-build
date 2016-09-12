@@ -18,7 +18,7 @@ struct ConsUnit
 
     ConsUnit(const string& workdir, const string& infile): dir(workdir), in(infile) { }
 
-    static bool InitC(ConsUnit& unit, const string& compiler, const string& flag);
-    static bool InitCpp(ConsUnit& unit, const string& compiler, const string& flag);
-    static bool InitAsm(ConsUnit& unit, const string& compiler, const string& flag);
+    static bool InitC(ConsUnit& unit, const string& compiler, const string& flags);
+    static bool InitCpp(ConsUnit& unit, const string& compiler, const string& flags);
+    static bool InitAsm(ConsUnit& unit, const string& compiler, const string& flags);
 };
