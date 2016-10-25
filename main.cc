@@ -20,6 +20,18 @@ static const unordered_set<string> C_EXT = { "c" };
 static const unordered_set<string> CXX_EXT = { "cc", "cxx", "cpp", "C" };
 static const unordered_set<string> ASM_EXT = { "s", "S", "asm", "nas" };
 
+namespace Error {
+    enum {
+        Argument = 1,
+        Permission,
+        Exist,
+        Empty,
+        Dependency,
+        Compile,
+        Link
+    };
+}
+
 static void Usage(const string& cmd)
 {
     const string sp(cmd.size(), ' ');
@@ -171,7 +183,7 @@ int main(int argc, char** argv)
                     {
                         cerr << "FATAL: bad argument: " << endl;
                         cerr << "arg: " << arg << endl;
-                        return -1;
+                        return Error::Argument;
                     }
                     break;
                 }
@@ -187,13 +199,13 @@ int main(int argc, char** argv)
                 if (!Dir::MakeDir(dir, 0744)) {
                     cerr << "Failed to create directory!" << endl;
                     cerr << "    Directory: " << dir << endl;
-                    return -1;
+                    return Error::Permission;
                 }
             } else if (info.Type() != FileType::Directory) {
                 cerr << "Bad work directory! " << endl;
                 cerr << "    Directory: " << dir << endl;
                 cerr << "    File type: " << FileType::ToString(info.Type()) << endl;
-                return -1;
+                return Error::Exist;
             }
         }
 
@@ -282,7 +294,7 @@ int main(int argc, char** argv)
 
         if (allsrc.empty()) {
             cerr << "FATAL: nothing to build!" << endl;
-            return -1;
+            return Error::Empty;
         }
     }
     
@@ -334,7 +346,7 @@ int main(int argc, char** argv)
             cerr << "    flag:     " << ArgTable["flag"] << endl;
             cerr << "    ccflag:   " << ArgTable["ccflag"] << endl;
             cerr << "    cxxflag:  " << ArgTable["cxxflag"] << endl;
-            return -1;
+            return Error::Dependency;
         }
     }
 
@@ -383,7 +395,7 @@ int main(int argc, char** argv)
         ParallelCompiler pc(newUnits);
         pc.SetVerbose(verbose);
         if (pc.Run(std::stoi(ArgTable["jobs"])) != 0) {
-            return -1;
+            return Error::Compile;
         }
     }
 
@@ -402,7 +414,7 @@ int main(int argc, char** argv)
             cerr << "    file:   " << allObjects << endl;
             cerr << "    ld:     " << ArgTable["ld"] << endl;
             cerr << "    ldflag: " << ArgTable["ldflag"] << endl;
-            return -2;
+            return Error::Compile;
         }
     }
 
