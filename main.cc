@@ -108,6 +108,7 @@ int main(int argc, char** argv)
         bool usePipe = true;
         bool useC89 = false;
         bool useC99 = true;
+        bool useC11 = false;
         bool useCXX11 = false;
         bool useCXX14 = false;
         bool useCXX1y = false;
@@ -154,6 +155,8 @@ int main(int argc, char** argv)
                 useC89 = true;
             } else if (arg == "c99") {
                 useC99 = true;
+            } else if (arg == "c11") {
+                useC11 = true;
             } else if (arg == "c++11") {
                 useCXX11 = true;
             } else if (arg == "c++14") {
@@ -267,6 +270,8 @@ int main(int argc, char** argv)
             ArgTable["ccflag"] += " -std=c89";
         } else if (useC99) {
             ArgTable["ccflag"] += " -std=c99";
+        } else if (useC11) {
+            ArgTable["ccflag"] += " -std=c11";
         }
 
         if (ArgTable["cxxflag"].empty()) {
