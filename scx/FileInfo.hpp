@@ -1,5 +1,4 @@
-#ifndef SCX_FILEINFO_HPP
-#define SCX_FILEINFO_HPP
+#pragma once
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -149,26 +148,30 @@ private:
 
     void CheckFileType()
     {
-        m_exists = !m_name.empty() && (stat(m_name.c_str(), &m_stat) == 0);
-        if (!m_exists)
+        if (m_name.empty() || ::stat(m_name.c_str(), &m_stat) != 0) {
+            m_exists = false;
             return;
+        }
 
-        if (S_ISREG(m_stat.st_mode))
+        m_exists = true;
+
+        if (S_ISREG(m_stat.st_mode)) {
             m_type = FileType::Regular;
-        else if (S_ISDIR(m_stat.st_mode))
+        } else if (S_ISDIR(m_stat.st_mode)) {
             m_type = FileType::Directory;
-        else if (S_ISCHR(m_stat.st_mode))
+        } else if (S_ISCHR(m_stat.st_mode)) {
             m_type = FileType::CharacterSpecial;
-        else if (S_ISBLK(m_stat.st_mode))
+        } else if (S_ISBLK(m_stat.st_mode)) {
             m_type = FileType::Block;
-        else if (S_ISFIFO(m_stat.st_mode))
+        } else if (S_ISFIFO(m_stat.st_mode)) {
             m_type = FileType::Pipe;
-        else if (S_ISLNK(m_stat.st_mode))
+        } else if (S_ISLNK(m_stat.st_mode)) {
             m_type = FileType::Link;
-        else if (S_ISSOCK(m_stat.st_mode))
+        } else if (S_ISSOCK(m_stat.st_mode)) {
             m_type = FileType::Socket;
-        else
+        } else {
             m_type = FileType::Other;
+        }
     }
 
 private:
@@ -181,4 +184,3 @@ private:
 
 }
 
-#endif
