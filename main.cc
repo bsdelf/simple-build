@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <utility>
 #include <unordered_set>
@@ -39,14 +40,14 @@ static void Usage(const string& cmd)
         "Usage:\n"
         "\t" + cmd + " [ file1 file2 ... | dir1 dir2 ... ]\n"
         "\t" + sp + " as=?        assembler\n"
-        "\t" + sp + " asflag=?    assembler flag\n"
+        "\t" + sp + " asflags=?    assembler flags\n"
         "\t" + sp + " cc=?        c compiler\n"
-        "\t" + sp + " ccflag=?    c compiler flag\n"
+        "\t" + sp + " cflags=?    c compiler flags\n"
         "\t" + sp + " cxx=?       c++ compiler\n"
-        "\t" + sp + " cxxflag=?   c++ compiler flag\n"
-        "\t" + sp + " flag=?      compiler common flag\n"
+        "\t" + sp + " cxxflags=?   c++ compiler flags\n"
+        "\t" + sp + " flags=?      compiler common flags\n"
         "\t" + sp + " ld=?        linker\n"
-        "\t" + sp + " ldflag=?    linker flag\n"
+        "\t" + sp + " ldflags=?    linker flags\n"
         "\t" + sp + " ldfirst=?   anchor first object file\n"
         "\t" + sp + " jobs=?      parallel build\n"
         "\t" + sp + " workdir=?   work direcotry\n"
@@ -78,14 +79,14 @@ int main(int argc, char** argv)
 {
     unordered_map<string, string> ArgTable = {
         {   "as",       "as"    },
-        {   "asflag",   ""      },
+        {   "asflags",  ""      },
         {   "cc",       "cc"    },
-        {   "ccflag",   ""      },
+        {   "cflags",   ""      },
         {   "cxx",      "c++"   },
-        {   "cxxflag",  ""      },
-        {   "flag",     ""      },
+        {   "cxxflags", ""      },
+        {   "flags",    ""      },
         {   "ld",       "cc"    },
-        {   "ldflag",   ""      },
+        {   "ldflags",  ""      },
         {   "ldfirst",  ""      },
         {   "jobs",     "0"     },
         {   "workdir",  ""      },
@@ -213,81 +214,81 @@ int main(int argc, char** argv)
         }
 
         //-------------------------------------------------------------
-        // additional compiler common flag
+        // additional compiler common flags
 
-        if (!ArgTable["flag"].empty()) {
-            ArgTable["flag"].insert(0, 1, ' ');
+        if (!ArgTable["flags"].empty()) {
+            ArgTable["flags"].insert(0, 1, ' ');
         }
 
         for (const auto& prefix: prefixes) {
-            ArgTable["flag"] += " -I " + prefix + "/include";
-            ArgTable["ldflag"] += " -L " + prefix + "/lib";
+            ArgTable["flags"] += " -I " + prefix + "/include";
+            ArgTable["ldflags"] += " -L " + prefix + "/lib";
         }
 
         if (useStrict) {
-            ArgTable["flag"] += " -Wall -Wextra -Werror";
+            ArgTable["flags"] += " -Wall -Wextra -Werror";
         }
 
         if (useRelease) {
-            ArgTable["flag"] += " -DNDEBUG";
+            ArgTable["flags"] += " -DNDEBUG";
         } else if (useDebug) {
-            ArgTable["flag"] += " -g";
+            ArgTable["flags"] += " -g";
         }
 
         if (usePipe) {
-            ArgTable["flag"] += " -pipe";
+            ArgTable["flags"] += " -pipe";
         }
 
         if (useShared) {
-            ArgTable["flag"] += " -fPIC";
-            ArgTable["ldflag"] += " -shared";
+            ArgTable["flags"] += " -fPIC";
+            ArgTable["ldflags"] += " -shared";
         }
 
         //-------------------------------------------------------------
-        // additional link flag
+        // additional link flags
 
-        if (!ArgTable["ldflag"].empty()) {
-            ArgTable["ldflag"].insert(0, 1, ' ');
+        if (!ArgTable["ldflags"].empty()) {
+            ArgTable["ldflags"].insert(0, 1, ' ');
         }
 
         if (useThread) {
-            ArgTable["flag"] += " -pthread";
+            ArgTable["flags"] += " -pthread";
 #ifndef __APPLE__
-            ArgTable["ldflag"] += " -pthread";
+            ArgTable["ldflags"] += " -pthread";
 #endif
         }
         
         //-------------------------------------------------------------
-        // additional c/c++ compiler flag
+        // additional c/c++ compiler flags
 
-        if (ArgTable["ccflag"].empty()) {
-            ArgTable["ccflag"] = ArgTable["flag"];
+        if (ArgTable["cflags"].empty()) {
+            ArgTable["cflags"] = ArgTable["flags"];
         } else {
-            ArgTable["ccflag"].insert(0, ArgTable["flag"] + " ");
+            ArgTable["cflags"].insert(0, ArgTable["flags"] + " ");
         }
 
         if (useC89) {
-            ArgTable["ccflag"] += " -std=c89";
+            ArgTable["cflags"] += " -std=c89";
         } else if (useC99) {
-            ArgTable["ccflag"] += " -std=c99";
+            ArgTable["cflags"] += " -std=c99";
         } else if (useC11) {
-            ArgTable["ccflag"] += " -std=c11";
+            ArgTable["cflags"] += " -std=c11";
         }
 
-        if (ArgTable["cxxflag"].empty()) {
-            ArgTable["cxxflag"] = ArgTable["flag"];
+        if (ArgTable["cxxflags"].empty()) {
+            ArgTable["cxxflags"] = ArgTable["flags"];
         } else {
-            ArgTable["cxxflag"].insert(0, ArgTable["flag"] + " ");
+            ArgTable["cxxflags"].insert(0, ArgTable["flags"] + " ");
         }
 
         if (useCXX11) {
-            ArgTable["cxxflag"] += " -std=c++11";
+            ArgTable["cxxflags"] += " -std=c++11";
         } else if (useCXX14) {
-            ArgTable["cxxflag"] += " -std=c++14";
+            ArgTable["cxxflags"] += " -std=c++14";
         } else if (useCXX1y) {
-            ArgTable["cxxflag"] += " -std=c++1y";
+            ArgTable["cxxflags"] += " -std=c++1y";
         } else if (useCXX1z) {
-            ArgTable["cxxflag"] += " -std=c++1z";
+            ArgTable["cxxflags"] += " -std=c++1z";
         }
 
         //-------------------------------------------------------------
@@ -320,16 +321,16 @@ int main(int argc, char** argv)
         const string ext(FileInfo(file).Suffix());
         if (C_EXT.find(ext) != C_EXT.end()) {
             compiler = ArgTable["cc"];
-            compilerFlag = ArgTable["ccflag"];
+            compilerFlag = ArgTable["cflags"];
             ok = ConsUnit::InitC(unit, compiler, compilerFlag);
         } else if (CXX_EXT.find(ext) != CXX_EXT.end()) {
             hasCpp = true;
             compiler = ArgTable["cxx"];
-            compilerFlag = ArgTable["cxxflag"];
+            compilerFlag = ArgTable["cxxflags"];
             ok = ConsUnit::InitCpp(unit, compiler, compilerFlag);
         } else if (ASM_EXT.find(ext) != ASM_EXT.end()) {
             compiler = ArgTable["as"];
-            compilerFlag = ArgTable["asflag"];
+            compilerFlag = ArgTable["asflags"];
             ok = ConsUnit::InitAsm(unit, compiler, compilerFlag);
         } else {
             continue;
@@ -348,9 +349,9 @@ int main(int argc, char** argv)
             cerr << "FATAL: failed to calculate dependence!" << endl;
             cerr << "    file:     " << file << endl;
             cerr << "    compiler: " << compiler << endl;
-            cerr << "    flag:     " << ArgTable["flag"] << endl;
-            cerr << "    ccflag:   " << ArgTable["ccflag"] << endl;
-            cerr << "    cxxflag:  " << ArgTable["cxxflag"] << endl;
+            cerr << "    flags:    " << ArgTable["flags"] << endl;
+            cerr << "    cflags:   " << ArgTable["cflags"] << endl;
+            cerr << "    cxxflags: " << ArgTable["cxxflags"] << endl;
             return Error::Dependency;
         }
     }
@@ -406,7 +407,7 @@ int main(int argc, char** argv)
 
     // link
     if ((!hasOut || !newUnits.empty()) && !nlink) {
-        string ldCmd = ArgTable["ld"] + ArgTable["ldflag"];
+        string ldCmd = ArgTable["ld"] + ArgTable["ldflags"];
         ldCmd += " -o " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
 
         if (!verbose) {
@@ -418,7 +419,7 @@ int main(int argc, char** argv)
             cerr << "FATAL: failed to link!" << endl;
             cerr << "    file:   " << allObjects << endl;
             cerr << "    ld:     " << ArgTable["ld"] << endl;
-            cerr << "    ldflag: " << ArgTable["ldflag"] << endl;
+            cerr << "    ldflags: " << ArgTable["ldflags"] << endl;
             return Error::Compile;
         }
     }
