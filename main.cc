@@ -196,8 +196,9 @@ int main(int argc, char** argv)
 
         if (!ArgTable["workdir"].empty()) {
             auto& dir = ArgTable["workdir"];
-            if (dir[dir.size()-1] != '/')
+            if (dir[dir.size()-1] != '/') {
                 dir += "/";
+            }
             const auto& info = FileInfo(dir);
             if (!info.Exists()) {
                 if (!Dir::MakeDir(dir, 0744)) {
@@ -373,8 +374,9 @@ int main(int argc, char** argv)
                 cout << "in: " <<  unit.in << ", " << "out: " << unit.out << endl;
                 cout << "\t" << unit.cmd << endl;
                 cout << "\t";
-                for (const auto& dep: unit.deps)
+                for (const auto& dep: unit.deps) {
                     cout << dep << ", ";
+                }
                 cout << endl;
             }
         };

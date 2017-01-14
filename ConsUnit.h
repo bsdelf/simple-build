@@ -2,23 +2,26 @@
 
 #include <string>
 #include <vector>
-using namespace std;
 
 struct ConsUnit
 {
-    string dir; // output dir
-    string in;
+    std::string dir; // output dir
+    std::string in;
 
-    string out;
-    string cmd;
+    std::string out;
+    std::string cmd;
 
 #ifdef DEBUG
-    vector<string> deps;
+    std::vector<std::string> deps;
 #endif
 
-    ConsUnit(const string& workdir, const string& infile): dir(workdir), in(infile) { }
+    ConsUnit(const std::string& workdir, const std::string& infile):
+        dir(workdir),
+        in(infile)
+    {
+    }
 
-    static bool InitC(ConsUnit& unit, const string& compiler, const string& flags);
-    static bool InitCpp(ConsUnit& unit, const string& compiler, const string& flags);
-    static bool InitAsm(ConsUnit& unit, const string& compiler, const string& flags);
+    static bool InitC(ConsUnit& unit, const std::string& compiler, const std::string& flags);
+    static bool InitCpp(ConsUnit& unit, const std::string& compiler, const std::string& flags);
+    static bool InitAsm(ConsUnit& unit, const std::string& compiler, const std::string& flags);
 };
