@@ -302,6 +302,11 @@ int main(int argc, char** argv)
             cerr << "FATAL: nothing to build!" << endl;
             return Error::Empty;
         }
+
+        // sort by file path
+        std::sort(allsrc.begin(), allsrc.end(), [](const std::string& str1, const std::string& str2) {
+            return std::strcoll(str1.c_str(), str2.c_str()) < 0 ? true : false;
+        });
     }
     
     // Prepare construct units.
