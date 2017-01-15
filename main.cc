@@ -53,7 +53,7 @@ static void Usage(const string& cmd)
         "\t" + sp + " workdir=?   work direcotry\n"
         "\t" + sp + " out=?       binary output file name\n"
         "\t" + sp + " prefix=?    search head file and library in\n"
-        "\t" + sp + " nlink       do not link\n"
+        "\t" + sp + " nolink      do not link\n"
         "\t" + sp + " verbose     verbose output\n"
         "\t" + sp + " clean       clean build output\n"
         "\t" + sp + " help        show this help message\n"
@@ -94,7 +94,7 @@ int main(int argc, char** argv)
     };
 
     bool clean = false;
-    bool nlink = false;
+    bool nolink = false;
     bool verbose = false;
     vector<string> allsrc;
     vector<string> prefixes;
@@ -138,8 +138,8 @@ int main(int argc, char** argv)
                 return 0;
             } else if (arg == "verbose") {
                 verbose = true;
-            } else if (arg == "nlink") {
-                nlink = true;
+            } else if (arg == "nolink") {
+                nolink = true;
             } else if (arg == "clean") {
                 clean = true;
             } else if (arg == "thread") {
@@ -413,7 +413,7 @@ int main(int argc, char** argv)
     }
 
     // link
-    if ((!hasOut || !newUnits.empty()) && !nlink) {
+    if ((!hasOut || !newUnits.empty()) && !nolink) {
         string ldCmd = ArgTable["ld"] + ArgTable["ldflags"];
         ldCmd += " -o " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
 
