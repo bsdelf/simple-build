@@ -38,7 +38,7 @@ static void Usage(const string& cmd)
     const string sp(cmd.size(), ' ');
     cout << ""
         "Usage:\n"
-        "\t" + cmd + " [ file1 file2 ... | dir1 dir2 ... ]\n"
+        "\t" + cmd + " [files ...] [dirs ...]\n"
         "\t" + sp + " as=?        assembler\n"
         "\t" + sp + " asflags=?   assembler flags\n"
         "\t" + sp + " cc=?        c compiler\n"
