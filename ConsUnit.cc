@@ -19,17 +19,16 @@ bool ConsUnit::InitC(ConsUnit& unit, const std::string& compiler, const std::str
         return false;
     }
 
-    unit.out = FileInfo(unit.in).BaseName() + ".o";//deps[0].substr(0, deps[0].size()-1);
-    unit.out = unit.dir + unit.out;
+    unit.out = unit.dir + FileInfo(unit.in).BaseName() + ".o"; //deps[0].substr(0, deps[0].size()-1);
 
-    const bool need = FileInfo(unit.out).Exists() ?
-        std::any_of(deps.begin(), deps.end(), [&](const auto& dep) { return IsNewer(dep, unit.out); }) :
+    const bool required = FileInfo(unit.out).Exists() ?
+        std::any_of(std::begin(deps), std::end(deps), [&unit](const auto& dep) { return IsNewer(dep, unit.out); }) :
         true;
 
-    if (need) {
+    if (required) {
         unit.cmd = compiler + flags + " -o " + unit.out + " -c " + unit.in;
 #ifdef DEBUG
-        unit.deps.assign(deps.begin() + 1, deps.end());
+        unit.deps.assign(std::advance(std::begin(deps)), std::end(deps));
 #endif
     }
     return true;
@@ -42,8 +41,7 @@ bool ConsUnit::InitCpp(ConsUnit& unit, const std::string& compiler, const std::s
 
 bool ConsUnit::InitAsm(ConsUnit& unit, const std::string& compiler, const std::string& flags)
 {
-    unit.out = FileInfo(unit.in).BaseName() + ".o";
-    unit.out = unit.dir + unit.out;
+    unit.out = unit.dir + FileInfo(unit.in).BaseName() + ".o";
 
     if (!FileInfo(unit.out).Exists() || IsNewer(unit.in, unit.out)) {
         unit.cmd = compiler + " " + flags + " -o " + unit.out + " " + unit.in;
