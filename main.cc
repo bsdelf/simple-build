@@ -135,7 +135,7 @@ int main(int argc, char** argv)
                 }
             } else if (arg == "help") {
                 Usage(argv[0]);
-                return 0;
+                return EXIT_SUCCESS;
             } else if (arg == "verbose") {
                 verbose = true;
             } else if (arg == "nolink") {
@@ -390,7 +390,7 @@ int main(int argc, char** argv)
         const string& cmd = "rm -f " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
         cout << cmd << endl;
         ::system(cmd.c_str());
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     // compile
@@ -431,5 +431,5 @@ int main(int argc, char** argv)
         }
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
