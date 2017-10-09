@@ -4,7 +4,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include "scx/FileInfo.hpp"
+#include "scx/FileInfo.h"
 using namespace scx;
 
 // Maybe we can cache mtime to reduce the stat() system calls.

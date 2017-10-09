@@ -19,8 +19,8 @@ cd eb
 ├── Tools.h
 ├── main.cc
 └── scx
-    ├── Dir.hpp
-    └── FileInfo.hpp
+    ├── Dir.h
+    └── FileInfo.h
 
 % eb c++1y flag="-Wall -O2" thread workdir=work out=eb
 * Build: 4 files

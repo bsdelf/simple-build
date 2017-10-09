@@ -9,8 +9,8 @@
 #include <unordered_map>
 using namespace std;
 
-#include "scx/Dir.hpp"
-#include "scx/FileInfo.hpp"
+#include "scx/Dir.h"
+#include "scx/FileInfo.h"
 using namespace scx;
 
 #include "Tools.h"
