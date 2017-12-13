@@ -171,7 +171,10 @@ int main(int argc, char** argv)
                 switch (FileInfo(arg).Type()) {
                 case FileType::Directory:
                     {
-                        const auto& files = Dir::ListDir(arg);
+                        auto files = Dir::ListDir(arg);
+                        std::transform(files.begin(), files.end(), files.begin(), [&arg](const std::string& file) {
+                            return arg + "/" + file;
+                        });
                         allsrc.reserve(allsrc.size() + files.size());
                         allsrc.insert(allsrc.end(), files.begin(), files.end());
                     }
