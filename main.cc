@@ -71,7 +71,7 @@ static void Usage(const string& cmd)
         "\n";
 
     cout << ""
-        "Author:\n"
+        "Contact:\n"
         "\tYanhui Shen <@bsdelf on Twitter>\n";
 }
 
@@ -111,7 +111,7 @@ int main(int argc, char** argv)
         bool useC99 = true;
         bool useC11 = false;
         bool useCXX11 = false;
-        bool useCXX14 = false;
+        bool useCXX14 = true;
         bool useCXX1y = false;
         bool useCXX1z = false;
 
