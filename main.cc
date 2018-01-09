@@ -15,7 +15,7 @@ using namespace scx;
 
 #include "Tools.h"
 #include "ConsUnit.h"
-#include "Parallel.h"
+#include "Compiler.h"
 
 static const unordered_set<string> C_EXT = { "c" };
 static const unordered_set<string> CXX_EXT = { "cc", "cxx", "cpp", "C" };
@@ -408,9 +408,7 @@ int main(int argc, char** argv)
         }
         cout << endl;
 
-        ParallelCompiler pc(newUnits);
-        pc.SetVerbose(verbose);
-        if (pc.Run(std::stoi(ArgTable["jobs"])) != 0) {
+        if (Compiler::Run(newUnits, std::stoi(ArgTable["jobs"]), verbose) != 0) {
             return Error::Compile;
         }
     }
