@@ -35,11 +35,7 @@ int Compiler::Run(const std::vector<ConsUnit>& units, int jobs, bool verbose)
             int percent = (double)(index + 1) / units.size() * 100;
             {
                 std::unique_lock<std::mutex> locker(unit_count_mutex);
-                if (verbose) {
-                    ::printf("[ %3d%% ] %s\n", percent, unit.cmd.c_str());
-                } else {
-                    ::printf("[ %3d%% ] %s => %s\n", percent, unit.in.c_str(), unit.out.c_str());
-                }
+                ::printf("[ %3d%% ] %s\n", percent, unit.Note(verbose).c_str());
             }
             // compile it
             if (::system(unit.cmd.c_str()) != 0) {

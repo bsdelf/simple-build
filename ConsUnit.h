@@ -21,6 +21,8 @@ struct ConsUnit
     {
     }
 
+    std::string Note(bool verbose) const;
+
     static bool InitC(ConsUnit& unit, const std::string& compiler, const std::string& flags);
     static bool InitCpp(ConsUnit& unit, const std::string& compiler, const std::string& flags);
     static bool InitAsm(ConsUnit& unit, const std::string& compiler, const std::string& flags);

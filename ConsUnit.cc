@@ -7,6 +7,10 @@
 #include "scx/FileInfo.h"
 using namespace scx;
 
+std::string ConsUnit::Note(bool verbose) const {
+    return verbose ? cmd : (in + " => " + out);
+}
+
 // Maybe we can cache mtime to reduce the stat() system calls.
 bool ConsUnit::InitC(ConsUnit& unit, const std::string& compiler, const std::string& flags)
 {
