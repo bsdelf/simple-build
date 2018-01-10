@@ -8,7 +8,7 @@
 #include <future>
 #include <thread>
 
-int Compiler::Run(const std::vector<ConsUnit>& units, int jobs, bool verbose)
+int Compiler::Run(const std::vector<TransUnit>& units, int jobs, bool verbose)
 {
     if (jobs <= 0) {
         jobs = std::thread::hardware_concurrency();

@@ -3,10 +3,10 @@
 #include <mutex>
 #include <vector>
 
-#include "ConsUnit.h"
+#include "TransUnit.h"
 
 class Compiler
 {
 public:
-    static int Run(const std::vector<ConsUnit>& units, int jobs, bool verbose);
+    static int Run(const std::vector<TransUnit>& units, int jobs, bool verbose);
 };

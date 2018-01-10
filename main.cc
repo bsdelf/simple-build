@@ -5,7 +5,6 @@
 #include <cstring>
 #include <iostream>
 #include <utility>
-#include <unordered_set>
 #include <unordered_map>
 using namespace std;
 
@@ -14,12 +13,8 @@ using namespace std;
 using namespace scx;
 
 #include "Tools.h"
-#include "ConsUnit.h"
+#include "TransUnit.h"
 #include "Compiler.h"
-
-static const unordered_set<string> C_EXT = { "c" };
-static const unordered_set<string> CXX_EXT = { "cc", "cxx", "cpp", "C" };
-static const unordered_set<string> ASM_EXT = { "s", "S", "asm", "nas" };
 
 namespace Error {
     enum {
@@ -317,51 +312,24 @@ int main(int argc, char** argv)
     // Note: "workdir" & "out" should occur together
     bool hasCpp = false;
     bool hasOut = FileInfo(ArgTable["workdir"] + ArgTable["out"]).Exists();
-    vector<ConsUnit> newUnits;
+    vector<TransUnit> newUnits;
     string allObjects;
 
     for (const auto& file: allsrc) {
-        ConsUnit unit(ArgTable["workdir"], file);
-        string compiler;
-        string compilerFlag;
-
-        // Calculate dependence.
-        bool ok = false;
-        const string ext(FileInfo(file).Suffix());
-        if (C_EXT.find(ext) != C_EXT.end()) {
-            compiler = ArgTable["cc"];
-            compilerFlag = ArgTable["cflags"];
-            ok = ConsUnit::InitC(unit, compiler, compilerFlag);
-        } else if (CXX_EXT.find(ext) != CXX_EXT.end()) {
-            hasCpp = true;
-            compiler = ArgTable["cxx"];
-            compilerFlag = ArgTable["cxxflags"];
-            ok = ConsUnit::InitCpp(unit, compiler, compilerFlag);
-        } else if (ASM_EXT.find(ext) != ASM_EXT.end()) {
-            compiler = ArgTable["as"];
-            compilerFlag = ArgTable["asflags"];
-            ok = ConsUnit::InitAsm(unit, compiler, compilerFlag);
-        } else {
+        const auto& outdir = ArgTable["workdir"];
+        bool isCpp = false;
+        auto unit = TransUnit::Make(file, outdir, ArgTable, isCpp);
+        if (!unit) {
             continue;
         }
-
-        if (ok) {
-            if (unit.out == ArgTable["ldfirst"]) {
-                allObjects = " " + unit.out + allObjects;
-            } else {
-                allObjects += " " + unit.out;
-            }
-            if (!unit.cmd.empty()) {
-                newUnits.push_back(std::move(unit));
-            }
+        hasCpp = hasCpp || isCpp;
+        if (unit.out == ArgTable["ldfirst"]) {
+            allObjects = " " + unit.out + allObjects;
         } else {
-            cerr << "FATAL: failed to calculate dependence!" << endl;
-            cerr << "    file:     " << file << endl;
-            cerr << "    compiler: " << compiler << endl;
-            cerr << "    flags:    " << ArgTable["flags"] << endl;
-            cerr << "    cflags:   " << ArgTable["cflags"] << endl;
-            cerr << "    cxxflags: " << ArgTable["cxxflags"] << endl;
-            return Error::Dependency;
+            allObjects += " " + unit.out;
+        }
+        if (!unit.cmd.empty()) {
+            newUnits.push_back(std::move(unit));
         }
     }
 
@@ -372,19 +340,16 @@ int main(int argc, char** argv)
 #ifdef DEBUG
     // Debug info.
     {
-        auto fn = [](const vector<ConsUnit>& units) {
-            for (const auto& unit: units) {
-                cout << "in: " <<  unit.in << ", " << "out: " << unit.out << endl;
-                cout << "\t" << unit.cmd << endl;
-                cout << "\t";
-                for (const auto& dep: unit.deps) {
-                    cout << dep << ", ";
-                }
-                cout << endl;
+        std::string split(80, '-');
+        cout << "New translation units: " << endl;
+        cout << split << endl;
+        for (const auto& unit: newUnits) {
+            cout << unit.Note(true) << endl;
+            for (const auto& dep: unit.deps) {
+                cout << dep << ", ";
             }
-        };
-        cout << "new units: " << endl;
-        fn(newUnits);
+            cout << endl << split << endl;
+        }
     }
 #endif
 
