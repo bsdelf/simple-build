@@ -38,7 +38,7 @@ int Compiler::Run(const std::vector<TransUnit>& units, int jobs, bool verbose)
                 ::printf("[ %3d%% ] %s\n", percent, unit.Note(verbose).c_str());
             }
             // compile it
-            if (::system(unit.cmd.c_str()) != 0) {
+            if (::system(unit.command.c_str()) != 0) {
                 ok = false;
                 return -1;
             }

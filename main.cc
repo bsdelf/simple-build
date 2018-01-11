@@ -164,30 +164,24 @@ int main(int argc, char** argv)
             } else {
                 // Add source files
                 switch (FileInfo(arg).Type()) {
-                case FileType::Directory:
-                    {
+                case FileType::Directory: {
                         auto files = Dir::ListDir(arg);
                         std::transform(files.begin(), files.end(), files.begin(), [&arg](const std::string& file) {
                             return arg + "/" + file;
                         });
                         allsrc.reserve(allsrc.size() + files.size());
                         allsrc.insert(allsrc.end(), files.begin(), files.end());
-                    }
-                    break;
+                    } break;
 
-                case FileType::Regular:
-                    {
+                case FileType::Regular: {
                         allsrc.push_back(arg);
-                    }
-                    break;
+                    } break;
 
-                default:
-                    {
+                default: {
                         cerr << "FATAL: bad argument: " << endl;
                         cerr << "arg: " << arg << endl;
                         return Error::Argument;
-                    }
-                    break;
+                    } break;
                 }
             }
         }
@@ -323,12 +317,12 @@ int main(int argc, char** argv)
             continue;
         }
         hasCpp = hasCpp || isCpp;
-        if (unit.out == ArgTable["ldfirst"]) {
-            allObjects = " " + unit.out + allObjects;
+        if (unit.objfile == ArgTable["ldfirst"]) {
+            allObjects = " " + unit.objfile + allObjects;
         } else {
-            allObjects += " " + unit.out;
+            allObjects += " " + unit.objfile;
         }
-        if (!unit.cmd.empty()) {
+        if (!unit.command.empty()) {
             newUnits.push_back(std::move(unit));
         }
     }
@@ -364,12 +358,12 @@ int main(int argc, char** argv)
     // compile
     if (!newUnits.empty()) {
         cout << "* Build: ";
-        if (!verbose) {
-            cout << newUnits.size() << (newUnits.size() > 1 ? " files" : " file");
-        } else {
+        if (verbose) {
             for (size_t i = 0; i < newUnits.size(); ++i) {
-                cout << newUnits[i].in << ((i+1 < newUnits.size()) ? ", " : "");
+                cout << newUnits[i].srcfile << ((i+1 < newUnits.size()) ? ", " : "");
             }
+        } else {
+            cout << newUnits.size() << (newUnits.size() > 1 ? " files" : " file");
         }
         cout << endl;
 
@@ -383,10 +377,10 @@ int main(int argc, char** argv)
         string ldCmd = ArgTable["ld"] + ArgTable["ldflags"];
         ldCmd += " -o " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
 
-        if (!verbose) {
-            cout << "- Link - " << ArgTable["workdir"] + ArgTable["out"] << endl;
-        } else {
+        if (verbose) {
             cout << "- Link - " << ldCmd << endl;
+        } else {
+            cout << "- Link - " << ArgTable["workdir"] + ArgTable["out"] << endl;
         }
         if (::system(ldCmd.c_str()) != 0) {
             cerr << "FATAL: failed to link!" << endl;
