@@ -48,10 +48,10 @@ static void Usage(const string& cmd)
         "\t" + sp + " workdir=?   work direcotry\n"
         "\t" + sp + " out=?       binary output file name\n"
         "\t" + sp + " prefix=?    search head file and library in\n"
+        "\n"
         "\t" + sp + " nolink      do not link\n"
         "\t" + sp + " verbose     verbose output\n"
         "\t" + sp + " clean       clean build output\n"
-        "\t" + sp + " help        show this help message\n"
         "\n"
         "\t" + sp + " thread      link against pthread\n"
         "\t" + sp + " shared      generate shared library\n"
@@ -63,6 +63,8 @@ static void Usage(const string& cmd)
         "\t" + sp + " c++14       -std=c++14\n"
         "\t" + sp + " c++1y       -std=c++1y\n"
         "\t" + sp + " c++1z       -std=c++1z\n"
+        "\n"
+        "\t" + sp + " help        show this help message\n"
         "\n";
 
     cout << ""
@@ -70,124 +72,106 @@ static void Usage(const string& cmd)
         "\tYanhui Shen <@bsdelf on Twitter>\n";
 }
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
-    unordered_map<string, string> ArgTable = {
-        {   "as",       "as"    },
-        {   "asflags",  ""      },
-        {   "cc",       "cc"    },
-        {   "cflags",   ""      },
-        {   "cxx",      "c++"   },
-        {   "cxxflags", ""      },
-        {   "flags",    ""      },
-        {   "ld",       "cc"    },
-        {   "ldflags",  ""      },
-        {   "ldfirst",  ""      },
-        {   "jobs",     "0"     },
-        {   "workdir",  ""      },
-        {   "out",      "b.out" }
+    vector<string> allfiles;
+
+    ArgMap args = {
+        {   "as",       { UpdateMode::Set, "as" }    },
+        {   "asflags",  { UpdateMode::Append, "" }      },
+        {   "cc",       { UpdateMode::Set, "cc"}    },
+        {   "cflags",   { UpdateMode::Append, ""}      },
+        {   "cxx",      { UpdateMode::Set, "c++"}   },
+        {   "cxxflags", { UpdateMode::Append,""}      },
+        {   "flags",    { UpdateMode::Append, ""}      },
+        {   "ld",       { UpdateMode::Set, "cc"}    },
+        {   "ldflags",  { UpdateMode::Append, ""}      },
+        {   "ldfirst",  { UpdateMode::Set, ""}      },
+        {   "jobs",     { UpdateMode::Set, "0"}     },
+        {   "workdir",  { UpdateMode::Set, ""}      },
+        {   "out",      { UpdateMode::Set, "b.out"}      },
+        // flags
+        {   "thread",   { UpdateMode::Set, "0"}     },
+        {   "shared",   { UpdateMode::Set, "0"}     },
+        {   "strict",   { UpdateMode::Set, "0"}     },
+        {   "release",  { UpdateMode::Set, "0"}     },
+        {   "debug",    { UpdateMode::Set, "0"}     },
+        {   "pipe",     { UpdateMode::Set, "1"}     },
+        {   "nolink",   { UpdateMode::Set, "0"}     },
+        {   "verbose",  { UpdateMode::Set, "0"}     },
+        {   "clean",    { UpdateMode::Set, "0"}     },
+        // c flags
+        {   "c89",      { UpdateMode::Set, "0"}     },
+        {   "c99",      { UpdateMode::Set, "1"}     },
+        {   "c11",      { UpdateMode::Set, "0"}     },
+        // c++ flags
+        {   "c++11",    { UpdateMode::Set, "0"}     },
+        {   "c++14",    { UpdateMode::Set, "1"}     },
+        {   "c++1y",    { UpdateMode::Set, "0"}     },
+        {   "c++1z",    { UpdateMode::Set, "0"}     }
     };
 
-    bool clean = false;
-    bool nolink = false;
-    bool verbose = false;
-    vector<string> allsrc;
-    vector<string> prefixes;
-
-    // Parse arguments.
-    {
-        bool useThread = false;
-        bool useShared = false;
-        bool useRelease = false;
-        bool useDebug = false;
-        bool useStrict = false;
-        bool usePipe = true;
-        bool useC89 = false;
-        bool useC99 = true;
-        bool useC11 = false;
-        bool useCXX11 = false;
-        bool useCXX14 = true;
-        bool useCXX1y = false;
-        bool useCXX1z = false;
-
-        for (int i = 1; i < argc; ++i) {
-            const string& arg(argv[i]);
-
-            // So obvisously, file name should not contain '='.
-            size_t pos = arg.find('=');
-            if (pos != string::npos && pos != arg.size()-1) {
-                const auto& key = arg.substr(0, pos);
-                const auto& val = arg.substr(pos+1);
-                // Update key-value.
-                auto iter = ArgTable.find(key);
-                if (iter != ArgTable.end()) {
-                    iter->second = val;
-                } else if (key == "prefix") {
-                    prefixes.push_back(val);
+    auto UpdateValue = [&](const std::string& key, const std::string& value = "") {
+        auto iter = args.find(key);
+        if (iter == args.end()) {
+            return false;
+        }
+        switch (iter->second.first) {
+            case UpdateMode::Set: {
+                iter->second.second = value.empty() ? "1" : value;
+            } break;
+            case UpdateMode::Append: {
+                if (iter->second.second.empty()) {
+                    iter->second.second = value;
                 } else {
-                    cout << "Argument ignored!" << endl;
-                    cout << "    Argument: " << arg << endl;
+                    iter->second.second += " " + value;
                 }
-            } else if (arg == "help") {
-                Usage(argv[0]);
-                return EXIT_SUCCESS;
-            } else if (arg == "verbose") {
-                verbose = true;
-            } else if (arg == "nolink") {
-                nolink = true;
-            } else if (arg == "clean") {
-                clean = true;
-            } else if (arg == "thread") {
-                useThread = true;
-            } else if (arg == "strict") {
-                useStrict = true;
-            } else if (arg == "release") {
-                useRelease = true;
-            } else if (arg == "debug") {
-                useDebug = true;
-            } else if (arg == "shared") {
-                useShared = true;
-            } else if (arg == "c89") {
-                useC89 = true;
-            } else if (arg == "c99") {
-                useC99 = true;
-            } else if (arg == "c11") {
-                useC11 = true;
-            } else if (arg == "c++11") {
-                useCXX11 = true;
-            } else if (arg == "c++14") {
-                useCXX14 = true;
-            } else if (arg == "c++1y") {
-                useCXX1y = true;
-            } else if (arg == "c++1z") {
-                useCXX1z = true;
-            } else {
-                // Add source files
-                switch (FileInfo(arg).Type()) {
-                case FileType::Directory: {
-                        auto files = Dir::ListDir(arg);
-                        std::transform(files.begin(), files.end(), files.begin(), [&arg](const std::string& file) {
-                            return arg + "/" + file;
-                        });
-                        allsrc.reserve(allsrc.size() + files.size());
-                        allsrc.insert(allsrc.end(), files.begin(), files.end());
-                    } break;
+            } break;
+        }
+        return true;
+    };
 
-                case FileType::Regular: {
-                        allsrc.push_back(arg);
-                    } break;
-
-                default: {
-                        cerr << "FATAL: bad argument: " << endl;
-                        cerr << "arg: " << arg << endl;
-                        return Error::Argument;
-                    } break;
-                }
+    // parse arguments, file name should not contain '='
+    {
+        auto ok = ParseArguments(argc, argv, [&](const std::string& key, const std::string& value = "") {
+            auto hit = UpdateValue(key, value);
+            if (hit) {
+                return true;
             }
+            if (key == "help") {
+                Usage(argv[0]);
+                exit(EXIT_SUCCESS);
+            } else if (key == "prefix") {
+                args["flags"].second += " -I " + value + "/include";
+                args["ldflags"].second += " -L " + value + "/lib";
+                return true;
+            }
+            switch (FileInfo(key).Type()) {
+                case FileType::Directory: {
+                    auto files = Dir::ListDir(key);
+                    std::transform(files.begin(), files.end(), files.begin(), [&](const std::string& file) {
+                        return key + "/" + file;
+                    });
+                    allfiles.reserve(allfiles.size() + files.size());
+                    allfiles.insert(allfiles.end(), files.begin(), files.end());
+                    return true;
+                };
+                case FileType::Regular: {
+                    allfiles.push_back(key);
+                    return true;
+                };
+                default: break;
+            }
+            cerr << "Bad argument: " << key << "=" << value << endl;
+            return true;
+        });
+
+        if (!ok) {
+            return Error::Argument;
         }
 
-        if (!ArgTable["workdir"].empty()) {
-            auto& dir = ArgTable["workdir"];
+        if (!args["workdir"].second.empty()) {
+            auto& dir = args["workdir"].second;
             if (dir[dir.size()-1] != '/') {
                 dir += "/";
             }
@@ -209,95 +193,90 @@ int main(int argc, char** argv)
         //-------------------------------------------------------------
         // additional compiler common flags
 
-        if (!ArgTable["flags"].empty()) {
-            ArgTable["flags"].insert(0, 1, ' ');
+        if (!args["flags"].second.empty()) {
+            args["flags"].second.insert(0, 1, ' ');
         }
 
-        for (const auto& prefix: prefixes) {
-            ArgTable["flags"] += " -I " + prefix + "/include";
-            ArgTable["ldflags"] += " -L " + prefix + "/lib";
+        if (args["strict"].second == "1") {
+            args["flags"].second += " -Wall -Wextra -Werror";
         }
 
-        if (useStrict) {
-            ArgTable["flags"] += " -Wall -Wextra -Werror";
+        if (args["release"].second == "1") {
+            args["flags"].second += " -DNDEBUG";
+        } else if (args["debug"].second == "1") {
+            args["flags"].second += " -g";
         }
 
-        if (useRelease) {
-            ArgTable["flags"] += " -DNDEBUG";
-        } else if (useDebug) {
-            ArgTable["flags"] += " -g";
+        if (args["pipe"].second == "1") {
+            args["flags"].second += " -pipe";
         }
 
-        if (usePipe) {
-            ArgTable["flags"] += " -pipe";
-        }
-
-        if (useShared) {
-            ArgTable["flags"] += " -fPIC";
-            ArgTable["ldflags"] += " -shared";
+        if (args["shared"].second == "1") {
+            args["flags"].second += " -fPIC";
+            args["ldflags"].second += " -shared";
         }
 
         //-------------------------------------------------------------
         // additional link flags
 
-        if (!ArgTable["ldflags"].empty()) {
-            ArgTable["ldflags"].insert(0, 1, ' ');
+        if (!args["ldflags"].second.empty()) {
+            args["ldflags"].second.insert(0, 1, ' ');
         }
 
-        if (useThread) {
-            ArgTable["flags"] += " -pthread";
+        if (args["thread"].second == "1") {
+            args["flags"].second += " -pthread";
 #ifndef __APPLE__
-            ArgTable["ldflags"] += " -pthread";
+            args["ldflags"].second += " -pthread";
 #endif
         }
         
         //-------------------------------------------------------------
         // additional c/c++ compiler flags
 
-        if (ArgTable["cflags"].empty()) {
-            ArgTable["cflags"] = ArgTable["flags"];
+        if (args["cflags"].second.empty()) {
+            args["cflags"].second = args["flags"].second;
         } else {
-            ArgTable["cflags"].insert(0, ArgTable["flags"] + " ");
+            args["cflags"].second.insert(0, args["flags"].second + " ");
         }
 
-        if (useC89) {
-            ArgTable["cflags"] += " -std=c89";
-        } else if (useC99) {
-            ArgTable["cflags"] += " -std=c99";
-        } else if (useC11) {
-            ArgTable["cflags"] += " -std=c11";
+        if (args["c89"].second == "1") {
+            args["cflags"].second += " -std=c89";
+        } else if (args["c99"].second == "1") {
+            args["cflags"].second += " -std=c99";
+        } else if (args["c11"].second == "1") {
+            args["cflags"].second += " -std=c11";
         }
 
-        if (ArgTable["cxxflags"].empty()) {
-            ArgTable["cxxflags"] = ArgTable["flags"];
+        if (args["cxxflags"].second.empty()) {
+            args["cxxflags"].second = args["flags"].second;
         } else {
-            ArgTable["cxxflags"].insert(0, ArgTable["flags"] + " ");
+            args["cxxflags"].second.insert(0, args["flags"].second + " ");
         }
 
-        if (useCXX11) {
-            ArgTable["cxxflags"] += " -std=c++11";
-        } else if (useCXX14) {
-            ArgTable["cxxflags"] += " -std=c++14";
-        } else if (useCXX1y) {
-            ArgTable["cxxflags"] += " -std=c++1y";
-        } else if (useCXX1z) {
-            ArgTable["cxxflags"] += " -std=c++1z";
+        if (args["c++11"].second == "1") {
+            args["cxxflags"].second += " -std=c++11";
+        } else if (args["c++14"].second == "1") {
+            args["cxxflags"].second += " -std=c++14";
+        } else if (args["c++1y"].second == "1") {
+            args["cxxflags"].second += " -std=c++1y";
+        } else if (args["c++1z"].second == "1") {
+            args["cxxflags"].second += " -std=c++1z";
         }
 
         //-------------------------------------------------------------
 
         // if unspecified, take all files under current folder
-        if (allsrc.empty()) {
-            allsrc = Dir::ListDir(".");
+        if (allfiles.empty()) {
+            allfiles = Dir::ListDir(".");
         }
 
-        if (allsrc.empty()) {
+        if (allfiles.empty()) {
             cerr << "FATAL: nothing to build!" << endl;
             return Error::Empty;
         }
 
         // sort by file path
-        std::sort(allsrc.begin(), allsrc.end(), [](const std::string& str1, const std::string& str2) {
+        std::sort(allfiles.begin(), allfiles.end(), [](const std::string& str1, const std::string& str2) {
             return std::strcoll(str1.c_str(), str2.c_str()) < 0 ? true : false;
         });
     }
@@ -305,19 +284,19 @@ int main(int argc, char** argv)
     // Prepare construct units.
     // Note: "workdir" & "out" should occur together
     bool hasCpp = false;
-    bool hasOut = FileInfo(ArgTable["workdir"] + ArgTable["out"]).Exists();
+    bool hasOut = FileInfo(args["workdir"].second + args["out"].second).Exists();
     vector<TransUnit> newUnits;
     string allObjects;
 
-    for (const auto& file: allsrc) {
-        const auto& outdir = ArgTable["workdir"];
+    for (const auto& file: allfiles) {
+        const auto& outdir = args["workdir"].second;
         bool isCpp = false;
-        auto unit = TransUnit::Make(file, outdir, ArgTable, isCpp);
+        auto unit = TransUnit::Make(file, outdir, args, isCpp);
         if (!unit) {
             continue;
         }
         hasCpp = hasCpp || isCpp;
-        if (unit.objfile == ArgTable["ldfirst"]) {
+        if (unit.objfile == args["ldfirst"].second) {
             allObjects = " " + unit.objfile + allObjects;
         } else {
             allObjects += " " + unit.objfile;
@@ -328,7 +307,7 @@ int main(int argc, char** argv)
     }
 
     if (hasCpp) {
-        ArgTable["ld"] = ArgTable["cxx"];
+        args["ld"].second = args["cxx"].second;
     }
 
 #ifdef DEBUG
@@ -348,12 +327,15 @@ int main(int argc, char** argv)
 #endif
 
     // clean
-    if (clean) {
-        const string& cmd = "rm -f " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
+    if (args["clean"].second == "1") {
+        const string& cmd = "rm -f " + args["workdir"].second + args["out"].second + allObjects;
         cout << cmd << endl;
         ::system(cmd.c_str());
         return EXIT_SUCCESS;
     }
+
+    auto verbose = args["verbose"].second == "1";
+    auto nolink = args["nolink"].second == "1";
 
     // compile
     if (!newUnits.empty()) {
@@ -367,26 +349,26 @@ int main(int argc, char** argv)
         }
         cout << endl;
 
-        if (Compiler::Run(newUnits, std::stoi(ArgTable["jobs"]), verbose) != 0) {
+        if (Compiler::Run(newUnits, std::stoi(args["jobs"].second), verbose) != 0) {
             return Error::Compile;
         }
     }
 
     // link
     if ((!hasOut || !newUnits.empty()) && !nolink) {
-        string ldCmd = ArgTable["ld"] + ArgTable["ldflags"];
-        ldCmd += " -o " + ArgTable["workdir"] + ArgTable["out"] + allObjects;
+        string ldCmd = args["ld"].second + args["ldflags"].second;
+        ldCmd += " -o " + args["workdir"].second + args["out"].second + allObjects;
 
         if (verbose) {
             cout << "- Link - " << ldCmd << endl;
         } else {
-            cout << "- Link - " << ArgTable["workdir"] + ArgTable["out"] << endl;
+            cout << "- Link - " << args["workdir"].second + args["out"].second << endl;
         }
         if (::system(ldCmd.c_str()) != 0) {
             cerr << "FATAL: failed to link!" << endl;
             cerr << "    file:   " << allObjects << endl;
-            cerr << "    ld:     " << ArgTable["ld"] << endl;
-            cerr << "    ldflags: " << ArgTable["ldflags"] << endl;
+            cerr << "    ld:     " << args["ld"].second << endl;
+            cerr << "    ldflags: " << args["ldflags"].second << endl;
             return Error::Compile;
         }
     }

@@ -47,7 +47,7 @@ TransUnit MakeForAsm(const std::string& srcfile, const std::string& objfile, con
 #endif
 }
 
-auto TransUnit::Make(const std::string& file, const std::string& outdir, const std::unordered_map<std::string, std::string>& args, bool& is_cpp) -> TransUnit {
+auto TransUnit::Make(const std::string& file, const std::string& outdir, const ArgMap& args, bool& is_cpp) -> TransUnit {
     FileInfo fileinfo(file);
     if (fileinfo.Type() == FileType::Regular) {
         std::string objfile = outdir + fileinfo.BaseName() + ".o";
@@ -55,18 +55,18 @@ auto TransUnit::Make(const std::string& file, const std::string& outdir, const s
         std::string compiler;
         std::string flags;
         if (C_EXT.find(ext) != C_EXT.end()) {
-            compiler = args.at("cc");
-            flags = args.at("cflags");
+            compiler = args.at("cc").second;
+            flags = args.at("cflags").second;
             is_cpp = false;
             return MakeForC(file, objfile, compiler, flags);
         } else if (CXX_EXT.find(ext) != CXX_EXT.end()) {
-            compiler = args.at("cxx");
-            flags = args.at("cxxflags");
+            compiler = args.at("cxx").second;
+            flags = args.at("cxxflags").second;
             is_cpp = true;
             return MakeForC(file, objfile, compiler, flags);
         } else if (ASM_EXT.find(ext) != ASM_EXT.end()) {
-            compiler = args.at("as");
-            flags = args.at("asflags");
+            compiler = args.at("as").second;
+            flags = args.at("asflags").second;
             is_cpp = false;
             return MakeForAsm(file, objfile, compiler, flags);
         }

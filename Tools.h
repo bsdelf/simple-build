@@ -9,19 +9,18 @@ auto RegexSplit(const std::string& str, const std::string& pattern) -> std::vect
 
 auto IsNewer(const std::string& f1, const std::string& f2) -> bool;
 
-template<class OnFlag, class OnKeyValue>
-void ParseArguments(int argc, char** argv, OnFlag onFlag, OnKeyValue onKeyValue)
+template<class OnArg>
+bool ParseArguments(int argc, char** argv, OnArg onarg)
 {
-    bool cont = true;
-    for (int i = 1; i < argc && cont; ++i) {
+    bool ok = true;
+    for (int i = 1; i < argc && ok; ++i) {
         std::string arg(argv[i]);
         auto pos = arg.find('=');
         if (pos != std::string::npos && pos != arg.size() - 1) {
-            std::string key(arg.substr(0, pos));
-            std::string val(arg.substr(pos + 1));
-            cont = onKeyValue(std::move(key), std::move(val));
+            ok = onarg(arg.substr(0, pos), arg.substr(pos + 1));
         } else {
-            cont = onFlag(std::move(arg));
+            ok = onarg(arg);
         }
     }
+    return ok;
 }
