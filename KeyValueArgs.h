@@ -145,7 +145,7 @@ class KeyValueArgs {
     static std::string ToString(const std::vector<Command>& cmds, int space = 0) {
       size_t max = 0;
       for (const auto& cmd: cmds) {
-        auto size = cmd.key.size() + (cmd.value_updater ? 2 : 0);
+        auto size = cmd.key.size();
         if (size > max) {
           max = size;
         }
@@ -157,9 +157,8 @@ class KeyValueArgs {
           result += '\n';
           continue;
         }
-        const std::string str1 = cmd.value_updater ? "=?": "";
-        const std::string str2(max - cmd.key.size()  - str1.size() + 4, ' ');
-        result += str0 + cmd.key + str1 + str2 + cmd.help + '\n';
+        const std::string str1(max - cmd.key.size() + 4, ' ');
+        result += str0 + cmd.key + str1 + cmd.help + '\n';
       }
       return result;
     }

@@ -31,49 +31,49 @@ namespace Error {
 int main(int argc, char* argv[])
 {
     std::vector<KeyValueArgs::Command> cmds = {
-        { "jobs",       "jobs",                     KeyValueArgs::Setter(), "0" },
-        { "out",        "output binary",            KeyValueArgs::Setter(), "b.out" },
-        { "workdir",    "work directory",           KeyValueArgs::Setter(), "." },
+        { "jobs",       "set number of jobs",           KeyValueArgs::Setter(), "0" },
+        { "out",        "set output binary",            KeyValueArgs::Setter(), "b.out" },
+        { "workdir",    "set work directory",           KeyValueArgs::Setter(), "." },
         {},
-        { "as",         "assembler",                KeyValueArgs::Setter(), "as" },
-        { "asflags",    "assembler flags",          KeyValueArgs::Jointer(), "" },
-        { "cc",         "c compiler",               KeyValueArgs::Setter(), "cc" },
-        { "cflags",     "c compiler flags",         KeyValueArgs::Jointer(), "" },
-        { "cxx",        "c++ compiler",             KeyValueArgs::Setter(), "c++" },
-        { "cxxflags",   "c++ compiler flags",       KeyValueArgs::Jointer(), "" },
-        { "flags",      "c & c++ compiler flags",   KeyValueArgs::KeyJointer({"cflags", "cxxflags"}) },
-        { "ld",         "linker",                   KeyValueArgs::Setter(), "cc" },
-        { "ldflags",    "linker flags",             KeyValueArgs::Jointer(), "" },
-        { "ldfirst",    "link order",               KeyValueArgs::Setter(), "" },
-        { "prefix",     "add include and lib",      KeyValueArgs::KeyValueJointer({
+        { "as",         "set assembler",                KeyValueArgs::Setter(), "as" },
+        { "asflags",    "add assembler flags",          KeyValueArgs::Jointer(), "" },
+        { "cc",         "set c compiler",               KeyValueArgs::Setter(), "cc" },
+        { "cflags",     "add c compiler flags",         KeyValueArgs::Jointer(), "" },
+        { "cxx",        "set c++ compiler",             KeyValueArgs::Setter(), "c++" },
+        { "cxxflags",   "add c++ compiler flags",       KeyValueArgs::Jointer(), "" },
+        { "flags",      "add c & c++ compiler flags",   KeyValueArgs::KeyJointer({"cflags", "cxxflags"}) },
+        { "ld",         "set linker",                   KeyValueArgs::Setter(), "cc" },
+        { "ldflags",    "add linker flags",             KeyValueArgs::Jointer(), "" },
+        { "ldfirst",    "add link order",               KeyValueArgs::Setter(), "" },
+        { "prefix",     "add search directories",       KeyValueArgs::KeyValueJointer({
                 {"flags", [](const std::string& str){ return "-I" + str + "/include"; }},
                 {"ldflags", [](const std::string& str){ return "-L" + str + "/lib"; }}
         })},
         {},
-        { "verbose",    "verbose output",           KeyValueArgs::ValueSetter("1"), "0" },
-        { "nolink",     "do not link",              KeyValueArgs::ValueSetter("1"), "0" },
-        { "clean",      "clear outputs",            KeyValueArgs::ValueSetter("1"), "0" },
-        { "shared",     "build shared library",     KeyValueArgs::KeyValueJointer({
-                {"cflags", "-fPIC"}, {"cxxflags", "-fPIC"}, {"ldflags", "-shared"}
-        })},
-        { "thread",     "link against pthread",     KeyValueArgs::KeyValueJointer({
+        { "verbose",    "verbose output",               KeyValueArgs::ValueSetter("1"), "0" },
+        { "clean",      "remove output files",          KeyValueArgs::ValueSetter("1"), "0" },
+        { "nolink",     "do not link",                  KeyValueArgs::ValueSetter("1"), "0" },
+        { "thread",     "link against pthread",         KeyValueArgs::KeyValueJointer({
                 {"flags", "-pthread"},
 #ifndef __APPLE__
                 {"ldflags", "-pthread"}
 #endif
         })},
-        { "pipe",       "-pipe",                    KeyValueArgs::KeyValueJointer({{"flags", "-pipe"}}) },
-        { "debug",      "-g",                       KeyValueArgs::KeyValueJointer({{"flags", "-g"}}) },
-        { "release",    "-DNDEBUG",                 KeyValueArgs::KeyValueJointer({{"flags", "-DNDEBUG"}}) },
-        { "strict",     "-Wall -Wextra -Werror",    KeyValueArgs::KeyValueJointer({{"flags", "-Wall -Wextra -Werror"}}) },
-        { "c89",        "-std=c89",                 KeyValueArgs::KeyValueJointer({{"cflags", "-std=c89"}}) },
-        { "c99",        "-std=c99",                 KeyValueArgs::KeyValueJointer({{"cflags", "-std=c99"}}) },
-        { "c11",        "-std=c11",                 KeyValueArgs::KeyValueJointer({{"cflags", "-std=c11"}}) },
-        { "c++11",      "-std=c++11",               KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++11"}}) },
-        { "c++1y",      "-std=c++1y",               KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++1y"}}) },
-        { "c++14",      "-std=c++14",               KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++14"}}) },
-        { "c++1z",      "-std=c++1z",               KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++1z"}}) },
-        { "c++17",      "-std=c++17",               KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++17"}}) },
+        { "shared",     "build shared library",         KeyValueArgs::KeyValueJointer({
+                {"cflags", "-fPIC"}, {"cxxflags", "-fPIC"}, {"ldflags", "-shared"}
+        })},
+        { "pipe",       "enable -pipe",                 KeyValueArgs::KeyValueJointer({{"flags", "-pipe"}}) },
+        { "debug",      "enable -g",                    KeyValueArgs::KeyValueJointer({{"flags", "-g"}}) },
+        { "release",    "enable -DNDEBUG",              KeyValueArgs::KeyValueJointer({{"flags", "-DNDEBUG"}}) },
+        { "strict",     "enable -Wall -Wextra -Werror", KeyValueArgs::KeyValueJointer({{"flags", "-Wall -Wextra -Werror"}}) },
+        { "c89",        "enable -std=c89",              KeyValueArgs::KeyValueJointer({{"cflags", "-std=c89"}}) },
+        { "c99",        "enable -std=c99",              KeyValueArgs::KeyValueJointer({{"cflags", "-std=c99"}}) },
+        { "c11",        "enable -std=c11",              KeyValueArgs::KeyValueJointer({{"cflags", "-std=c11"}}) },
+        { "c++11",      "enable -std=c++11",            KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++11"}}) },
+        { "c++1y",      "enable -std=c++1y",            KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++1y"}}) },
+        { "c++14",      "enable -std=c++14",            KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++14"}}) },
+        { "c++1z",      "enable -std=c++1z",            KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++1z"}}) },
+        { "c++17",      "enable -std=c++17",            KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++17"}}) },
     };
 
     vector<string> allfiles;
