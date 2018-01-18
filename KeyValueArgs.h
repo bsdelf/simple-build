@@ -15,13 +15,18 @@ class KeyValueArgs {
       std::function<void (std::string&, std::string)> value_updater;
       std::function<void (Args&, std::function<Command (const std::string&)>, std::string)> args_updater;
 
+      // empty command
       Command() = default;
 
-      Command(const std::string& key, const std::string& help, std::function<void (std::string&, std::string)> value_updater, const std::string& value)
+      // normal command
+      template <class Updater>
+      Command(const std::string& key, const std::string& help, Updater value_updater, const std::string& value)
         : key(key), value(value), help(help), value_updater(value_updater) {
       }
 
-      Command(const std::string& key, const std::string& help, std::function<void (Args&, std::function<Command (const std::string&)>, std::string)> args_updater)
+      // value-less command
+      template <class Updater>
+      Command(const std::string& key, const std::string& help, Updater args_updater)
         : key(key), help(help), args_updater(args_updater) {
       }
 
