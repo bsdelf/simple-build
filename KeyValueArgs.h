@@ -13,7 +13,7 @@ class KeyValueArgs {
       std::string value;
       std::string help;
       std::function<void (std::string&, std::string)> value_updater;
-      std::function<void (std::unordered_map<std::string, std::string>&, std::function<Command (const std::string&)>, std::string)> args_updater;
+      std::function<void (Args&, std::function<Command (const std::string&)>, std::string)> args_updater;
 
       Command() = default;
 
@@ -21,7 +21,7 @@ class KeyValueArgs {
         : key(key), value(value), help(help), value_updater(value_updater) {
       }
 
-      Command(const std::string& key, const std::string& help, std::function<void (std::unordered_map<std::string, std::string>&, std::function<Command (const std::string&)>, std::string)> args_updater)
+      Command(const std::string& key, const std::string& help, std::function<void (Args&, std::function<Command (const std::string&)>, std::string)> args_updater)
         : key(key), help(help), args_updater(args_updater) {
       }
 
@@ -53,7 +53,7 @@ class KeyValueArgs {
     }
 
     static auto KeyJointer(const std::vector<std::string>& keys) {
-      return [=](std::unordered_map<std::string, std::string>& args, std::function<Command (const std::string&)> find_cmd, std::string value) {
+      return [=](Args& args, std::function<Command (const std::string&)> find_cmd, std::string value) {
         for (const auto& key: keys) {
           // forward value-less command
           auto arg_iter = args.find(key);
@@ -76,7 +76,7 @@ class KeyValueArgs {
     }
 
     static auto KeyValueJointer(const std::vector<std::pair<std::string, std::string>>& key_values) {
-      return [=](std::unordered_map<std::string, std::string>& args, std::function<Command (const std::string&)> find_cmd, std::string) {
+      return [=](Args& args, std::function<Command (const std::string&)> find_cmd, std::string) {
         for (const auto& key_value: key_values) {
           auto key = key_value.first;
           auto value = key_value.second;
@@ -101,7 +101,7 @@ class KeyValueArgs {
     }
 
     static auto KeyValueJointer(const std::vector<std::pair<std::string, std::function<std::string (const std::string&)>>>& key_values) {
-      return [=](std::unordered_map<std::string, std::string>& args, std::function<Command (const std::string&)> find_cmd, std::string value) {
+      return [=](Args& args, std::function<Command (const std::string&)> find_cmd, std::string value) {
         for (const auto& key_value: key_values) {
           auto key = key_value.first;
           auto new_value = key_value.second(value);
@@ -126,8 +126,8 @@ class KeyValueArgs {
     }
 
     template <class OnUnknown>
-    static auto Parse(int argc, char** argv, const std::vector<Command>& cmds, OnUnknown on_unknown) -> std::unordered_map<std::string, std::string> {
-        std::unordered_map<std::string, std::string> args;
+    static auto Parse(int argc, char** argv, const std::vector<Command>& cmds, OnUnknown on_unknown) {
+        Args args;
         std::unordered_map<std::string, size_t> indexed_cmds;
         for (size_t i = 0; i < cmds.size(); ++i) {
           const auto& cmd = cmds[i];
