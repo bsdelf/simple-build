@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "ArgMap.h"
+#include "KeyValueArgs.h"
 
 struct TransUnit
 {
@@ -18,5 +18,5 @@ struct TransUnit
 
     auto Note(bool verbose) const -> std::string;
 
-    static auto Make(const std::string& file, const std::string& outdir, const ArgMap& args, bool& is_cpp) -> TransUnit;
+    static auto Make(const std::string& file, const std::string& outdir, const KeyValueArgs::Args& args, bool& is_cpp) -> TransUnit;
 };

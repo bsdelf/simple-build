@@ -1,5 +1,5 @@
 #include "TransUnit.h"
-#include "Tools.h"
+#include "Utils.h"
 
 #include <algorithm>
 #include <unordered_set>
@@ -25,7 +25,7 @@ TransUnit MakeForC(const std::string& srcfile, const std::string& objfile, const
 
     std::string command;
     if (required) {
-        command = compiler + flags + " -o " + objfile + " -c " + srcfile;
+        command = compiler + " " + flags + " -o " + objfile + " -c " + srcfile;
     }
 #if !defined(DEBUG)
     return { srcfile, objfile, command };
@@ -47,7 +47,7 @@ TransUnit MakeForAsm(const std::string& srcfile, const std::string& objfile, con
 #endif
 }
 
-auto TransUnit::Make(const std::string& file, const std::string& outdir, const ArgMap& args, bool& is_cpp) -> TransUnit {
+auto TransUnit::Make(const std::string& file, const std::string& outdir, const KeyValueArgs::Args& args, bool& is_cpp) -> TransUnit {
     FileInfo fileinfo(file);
     if (fileinfo.Type() == FileType::Regular) {
         std::string objfile = outdir + fileinfo.BaseName() + ".o";
@@ -55,18 +55,18 @@ auto TransUnit::Make(const std::string& file, const std::string& outdir, const A
         std::string compiler;
         std::string flags;
         if (C_EXT.find(ext) != C_EXT.end()) {
-            compiler = args.at("cc").second;
-            flags = args.at("cflags").second;
+            compiler = args.at("cc");
+            flags = args.at("cflags");
             is_cpp = false;
             return MakeForC(file, objfile, compiler, flags);
         } else if (CXX_EXT.find(ext) != CXX_EXT.end()) {
-            compiler = args.at("cxx").second;
-            flags = args.at("cxxflags").second;
+            compiler = args.at("cxx");
+            flags = args.at("cxxflags");
             is_cpp = true;
             return MakeForC(file, objfile, compiler, flags);
         } else if (ASM_EXT.find(ext) != ASM_EXT.end()) {
-            compiler = args.at("as").second;
-            flags = args.at("asflags").second;
+            compiler = args.at("as");
+            flags = args.at("asflags");
             is_cpp = false;
             return MakeForAsm(file, objfile, compiler, flags);
         }
