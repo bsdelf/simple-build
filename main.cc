@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 #endif
         })},
         { "shared",     "build shared library",         KeyValueArgs::KeyValueJointer({
-                {"cflags", "-fPIC"}, {"cxxflags", "-fPIC"}, {"ldflags", "-shared"}
+                {"flags", "-fPIC"}, {"ldflags", "-shared"}
         })},
         { "pipe",       "enable -pipe",                 KeyValueArgs::KeyValueJointer({{"flags", "-pipe"}}) },
         { "debug",      "enable -g",                    KeyValueArgs::KeyValueJointer({{"flags", "-g"}}) },
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
     };
 
     vector<string> allfiles;
-    auto args = KeyValueArgs::Parse(argc, argv, cmds, [&](const std::string& key, const std::string& value) {
+    auto args = KeyValueArgs::Parse(argc, argv, cmds, [&](std::string&& key, std::string&& value) {
         if (key == "help") {
             const size_t n = 8;
             const std::string blank(n, ' ');
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
                     return;
                 };
                 case FileType::Regular: {
-                    allfiles.push_back(key);
+                    allfiles.push_back(std::move(key));
                     return;
                 };
                 default: break;

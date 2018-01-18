@@ -13,7 +13,7 @@ class KeyValueArgs {
       std::string value;
       std::string help;
       std::function<void (std::string&, std::string)> value_updater;
-      std::function<void (std::unordered_map<std::string, std::string>&, std::string)> args_updater;
+      std::function<void (std::unordered_map<std::string, std::string>&, std::function<Command (const std::string&)>, std::string)> args_updater;
 
       Command() = default;
 
@@ -21,7 +21,7 @@ class KeyValueArgs {
         : key(key), value(value), help(help), value_updater(value_updater) {
       }
 
-      Command(const std::string& key, const std::string& help, std::function<void (std::unordered_map<std::string, std::string>&, std::string)> args_updater)
+      Command(const std::string& key, const std::string& help, std::function<void (std::unordered_map<std::string, std::string>&, std::function<Command (const std::string&)>, std::string)> args_updater)
         : key(key), help(help), args_updater(args_updater) {
       }
 
@@ -53,9 +53,19 @@ class KeyValueArgs {
     }
 
     static auto KeyJointer(const std::vector<std::string>& keys) {
-      return [=](std::unordered_map<std::string, std::string>& args, std::string value) {
+      return [=](std::unordered_map<std::string, std::string>& args, std::function<Command (const std::string&)> find_cmd, std::string value) {
         for (const auto& key: keys) {
-          auto& to_value = args.at(key);
+          // forward value-less command
+          auto arg_iter = args.find(key);
+          if (arg_iter == args.end()) {
+            auto cmd = find_cmd(key);
+            if (cmd && cmd.args_updater) {
+              cmd.args_updater(args, find_cmd, value);
+            }
+            continue;
+          }
+          // update value
+          auto& to_value = arg_iter->second;
           if (to_value.empty()) {
             to_value = value;
           } else {
@@ -66,15 +76,20 @@ class KeyValueArgs {
     }
 
     static auto KeyValueJointer(const std::vector<std::pair<std::string, std::string>>& key_values) {
-      return [=](std::unordered_map<std::string, std::string>& args, std::string) {
+      return [=](std::unordered_map<std::string, std::string>& args, std::function<Command (const std::string&)> find_cmd, std::string) {
         for (const auto& key_value: key_values) {
           auto key = key_value.first;
           auto value = key_value.second;
+          // forward value-less command
           auto arg_iter = args.find(key);
           if (arg_iter == args.end()) {
-            // need forward
-            return;
+            auto cmd = find_cmd(key);
+            if (cmd && cmd.args_updater) {
+              cmd.args_updater(args, find_cmd, value);
+            }
+            continue;
           }
+          // update value
           auto& to_value = arg_iter->second;
           if (to_value.empty()) {
             to_value = value;
@@ -86,11 +101,21 @@ class KeyValueArgs {
     }
 
     static auto KeyValueJointer(const std::vector<std::pair<std::string, std::function<std::string (const std::string&)>>>& key_values) {
-      return [=](std::unordered_map<std::string, std::string>& args, std::string value) {
+      return [=](std::unordered_map<std::string, std::string>& args, std::function<Command (const std::string&)> find_cmd, std::string value) {
         for (const auto& key_value: key_values) {
           auto key = key_value.first;
           auto new_value = key_value.second(value);
-          auto& to_value = args.at(key);
+          // forward value-less command
+          auto arg_iter = args.find(key);
+          if (arg_iter == args.end()) {
+            auto cmd = find_cmd(key);
+            if (cmd && cmd.args_updater) {
+              cmd.args_updater(args, find_cmd, new_value);
+            }
+            continue;
+          }
+          // update value
+          auto& to_value = arg_iter->second;
           if (to_value.empty()) {
             to_value = new_value;
           } else {
@@ -102,8 +127,8 @@ class KeyValueArgs {
 
     template <class OnUnknown>
     static auto Parse(int argc, char** argv, const std::vector<Command>& cmds, OnUnknown on_unknown) -> std::unordered_map<std::string, std::string> {
-      std::unordered_map<std::string, std::string> args;
-      std::unordered_map<std::string, size_t> indexed_cmds;
+        std::unordered_map<std::string, std::string> args;
+        std::unordered_map<std::string, size_t> indexed_cmds;
         for (size_t i = 0; i < cmds.size(); ++i) {
           const auto& cmd = cmds[i];
           if (cmd) {
@@ -114,29 +139,35 @@ class KeyValueArgs {
           }
         }
 
-        auto UpdateValue = [&](std::string key, std::string value = "") {
-            const auto indexed_cmd_iter = indexed_cmds.find(key);
-            if (indexed_cmd_iter == indexed_cmds.end()) {
-                on_unknown(key, value);
+        auto find_cmd = [&](const std::string& key) {
+          auto iter = indexed_cmds.find(key);
+          if (iter == indexed_cmds.end()) {
+            return Command();
+          }
+          return cmds[iter->second];
+        };
+
+        auto UpdateValue = [&](std::string&& key, std::string&& value) {
+            const auto& cmd = find_cmd(key);
+            if (!cmd) {
+                on_unknown(std::move(key), std::move(value));
                 return;
             }
-            const auto& cmd = cmds[indexed_cmd_iter->second];
             if (cmd.value_updater) {
               auto& current_value = args.at(cmd.key);
               cmd.value_updater(current_value, std::move(value));
             } else if (cmd.args_updater) {
-              cmd.args_updater(args, std::move(value));
+              cmd.args_updater(args, find_cmd, std::move(value));
             }
         };
 
-        bool cont = true;
-        for (int i = 1; i < argc && cont; ++i) {
+        for (int i = 1; i < argc; ++i) {
             std::string arg(argv[i]);
             auto pos = arg.find('=');
             if (pos != std::string::npos && pos != arg.size() - 1) {
                 UpdateValue(arg.substr(0, pos), arg.substr(pos + 1));
             } else {
-                UpdateValue(std::move(arg));
+                UpdateValue(std::move(arg), "");
             }
         }
         return args;
