@@ -1,3 +1,3 @@
 -I./scx
 -stdlib=libc++
--std=c++11
+-std=c++14
