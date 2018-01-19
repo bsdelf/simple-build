@@ -168,6 +168,9 @@ class KeyValueArgs {
 
         for (int i = 1; i < argc; ++i) {
             std::string arg(argv[i]);
+            if (arg.empty()) {
+              continue;
+            }
             auto pos = arg.find('=');
             if (pos != std::string::npos && pos != arg.size() - 1) {
                 UpdateValue(arg.substr(0, pos), arg.substr(pos + 1));
