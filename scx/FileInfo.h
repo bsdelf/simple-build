@@ -106,6 +106,12 @@ class FileInfo
         return (pos == std::string::npos) ? "" : m_name.substr(pos + 1);
     }
 
+    static auto BaseName(const std::string& name)
+    {
+        size_t pos = name.find_last_of('/');
+        return (pos == std::string::npos) ? name : name.substr(pos + 1);
+    }
+
   private:
     bool NotRegularFile() const
     {

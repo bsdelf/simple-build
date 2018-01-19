@@ -2,6 +2,8 @@
 #include <stdlib.h>
 
 #include <string>
+#include <vector>
+#include <queue>
 #include <cstring>
 #include <iostream>
 #include <utility>
@@ -44,7 +46,7 @@ int main(int argc, char* argv[])
         { "flags",      "add c & c++ compiler flags",   KeyValueArgs::KeyJointer({"cflags", "cxxflags"}) },
         { "ld",         "set linker",                   KeyValueArgs::Setter(), "cc" },
         { "ldflags",    "add linker flags",             KeyValueArgs::Jointer(), "" },
-        { "ldfirst",    "add link order",               KeyValueArgs::Setter(), "" },
+        { "ldorder",    "set link order",               KeyValueArgs::Setter(), "" },
         { "prefix",     "add search directories",       KeyValueArgs::KeyValueJointer({
                 {"flags", [](const std::string& str){ return "-I" + str + "/include"; }},
                 {"ldflags", [](const std::string& str){ return "-L" + str + "/lib"; }}
@@ -145,6 +147,8 @@ int main(int argc, char* argv[])
     string allObjects;
     {
         bool hasCpp = false;
+        const auto& ldorder = args["ldorder"];
+        std::vector<std::pair<size_t, std::string>> headObjects;
         for (const auto& file: allfiles) {
             const auto& outdir = args["workdir"];
             bool isCpp = false;
@@ -153,14 +157,21 @@ int main(int argc, char* argv[])
                 continue;
             }
             hasCpp = hasCpp || isCpp;
-            if (unit.objfile == args["ldfirst"]) {
-                allObjects = " " + unit.objfile + allObjects;
+            auto pos = ldorder.empty() ? std::string::npos : ldorder.find(FileInfo::BaseName(unit.objfile));
+            if (pos != std::string::npos) {
+                headObjects.emplace_back(pos, unit.objfile);
             } else {
-                allObjects += " " + unit.objfile;
+                allObjects += unit.objfile + ' ';
             }
             if (!unit.command.empty()) {
                 newUnits.push_back(std::move(unit));
             }
+        }
+        std::sort(headObjects.begin(), headObjects.end(), [](const auto& a, const auto& b) {
+            return a.first > b.first;
+        });
+        for (auto&& headObject: headObjects) {
+            allObjects.insert(0, std::move(headObject.second) + ' ');
         }
         if (hasCpp) {
             args["ld"] = args["cxx"];
