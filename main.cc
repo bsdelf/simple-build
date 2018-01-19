@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
 
     // clean
     if (args["clean"] == "1") {
-        const string& cmd = "rm -f " + args["workdir"] + args["out"] + allObjects;
+        const string& cmd = "rm -f " + args["workdir"] + args["out"] + ' ' + allObjects;
         cout << cmd << endl;
         ::system(cmd.c_str());
         return EXIT_SUCCESS;
