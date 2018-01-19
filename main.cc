@@ -3,11 +3,9 @@
 
 #include <string>
 #include <vector>
-#include <queue>
 #include <cstring>
 #include <iostream>
 #include <utility>
-#include <unordered_map>
 using namespace std;
 
 #include "scx/Dir.h"
@@ -117,8 +115,8 @@ int main(int argc, char* argv[])
         cerr << "FATAL: nothing to build!" << endl;
         return Error::Empty;
     }
-    std::sort(allfiles.begin(), allfiles.end(), [](const std::string& str1, const std::string& str2) {
-        return std::strcoll(str1.c_str(), str2.c_str()) < 0 ? true : false;
+    std::sort(allfiles.begin(), allfiles.end(), [](const auto& a, const auto& b) {
+        return std::strcoll(a.c_str(), b.c_str()) < 0 ? true : false;
     });
 
     // prepare work directory

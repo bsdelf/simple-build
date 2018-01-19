@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <future>
 #include <thread>
+#include <mutex>
 
 int Compiler::Run(const std::vector<TransUnit>& units, int jobs, bool verbose)
 {
