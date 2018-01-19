@@ -171,8 +171,8 @@ class KeyValueArgs {
             if (arg.empty()) {
               continue;
             }
-            auto pos = arg.find('=');
-            if (pos != std::string::npos && pos != arg.size() - 1) {
+            auto pos = std::min(arg.find('='), arg.size());
+            if (pos < arg.size()) {
                 UpdateValue(arg.substr(0, pos), arg.substr(pos + 1));
             } else {
                 UpdateValue(std::move(arg), "");
