@@ -17,18 +17,6 @@ using namespace scx;
 #include "TransUnit.h"
 #include "Compiler.h"
 
-namespace Error {
-    enum {
-        Argument = 1,
-        Permission,
-        Exist,
-        Empty,
-        Dependency,
-        Compile,
-        Link
-    };
-}
-
 int main(int argc, char* argv[])
 {
     std::vector<KeyValueArgs::Command> cmds = {
@@ -86,7 +74,7 @@ int main(int argc, char* argv[])
             cout << blank << std::string(argv[0]) << " [options...] [file ...] [dir ...]" << endl;
             cout << endl;
             cout << KeyValueArgs::ToString(cmds, n) << endl;
-            exit(EXIT_SUCCESS);
+            ::exit(EXIT_SUCCESS);
         }
         if (value.empty()) {
             switch (FileInfo(key).Type()) {
@@ -106,7 +94,12 @@ int main(int argc, char* argv[])
                 default: break;
             }
         }
-        cerr << "Bad argument: " << key << "=" << value << endl;
+        cerr << "Bad argument: " << key;
+        if (!value.empty()) {
+            cerr << "=" << value;
+        }
+        cerr << endl;
+        ::exit(EXIT_FAILURE);
     });
 
     // prepare source files
@@ -115,7 +108,7 @@ int main(int argc, char* argv[])
     }
     if (allfiles.empty()) {
         cerr << "FATAL: nothing to build!" << endl;
-        return Error::Empty;
+        ::exit(EXIT_FAILURE);
     }
     std::sort(allfiles.begin(), allfiles.end(), [](const auto& a, const auto& b) {
         return std::strcoll(a.c_str(), b.c_str()) < 0 ? true : false;
@@ -132,13 +125,13 @@ int main(int argc, char* argv[])
             if (!Dir::MakeDir(dir, 0744)) {
                 cerr << "Failed to create directory!" << endl;
                 cerr << "    Directory: " << dir << endl;
-                return Error::Permission;
+                ::exit(EXIT_FAILURE);
             }
         } else if (info.Type() != FileType::Directory) {
             cerr << "Bad work directory! " << endl;
             cerr << "    Directory: " << dir << endl;
             cerr << "    File type: " << FileType::ToString(info.Type()) << endl;
-            return Error::Exist;
+            ::exit(EXIT_FAILURE);
         }
     }
     
@@ -199,7 +192,7 @@ int main(int argc, char* argv[])
         const string& cmd = "rm -f " + args["workdir"] + args["out"] + ' ' + allObjects;
         cout << cmd << endl;
         ::system(cmd.c_str());
-        return EXIT_SUCCESS;
+        ::exit(EXIT_SUCCESS);
     }
 
     // compile
@@ -215,7 +208,7 @@ int main(int argc, char* argv[])
         }
         cout << endl;
         if (Compiler::Run(newUnits, std::stoi(args["jobs"]), verbose) != 0) {
-            return Error::Compile;
+            ::exit(EXIT_FAILURE);
         }
     }
 
@@ -233,9 +226,9 @@ int main(int argc, char* argv[])
             cerr << "    file:   " << allObjects << endl;
             cerr << "    ld:     " << args["ld"] << endl;
             cerr << "    ldflags: " << args["ldflags"] << endl;
-            return Error::Compile;
+            ::exit(EXIT_FAILURE);
         }
     }
 
-    return EXIT_SUCCESS;
+    ::exit(EXIT_SUCCESS);
 }
