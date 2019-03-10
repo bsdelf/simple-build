@@ -82,9 +82,10 @@ int main(int argc, char* argv[])
         if (key == "help") {
             const size_t n = 8;
             const std::string blank(n, ' ');
-            cout << "Usage:\n" + blank + std::string(argv[0]) + " [file ...] [dir ...]\n\n";
+            cout << "Usage:" << endl;
+            cout << blank << std::string(argv[0]) << " [options...] [file ...] [dir ...]" << endl;
+            cout << endl;
             cout << KeyValueArgs::ToString(cmds, n) << endl;
-            cout << "Contact:\n" + blank + "Yanhui Shen <@bsdelf on Twitter>\n";
             exit(EXIT_SUCCESS);
         }
         if (value.empty()) {
