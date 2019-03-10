@@ -65,56 +65,67 @@ int main(int argc, char* argv[])
         { "c++17",      "enable -std=c++17",            KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++17"}}) },
     };
 
-    vector<string> allfiles;
+    // parse command line arguments
+    vector<string> inputPaths;
     auto args = KeyValueArgs::Parse(argc, argv, cmds, [&](std::string&& key, std::string&& value) {
         if (key == "help") {
             const size_t n = 8;
             const std::string blank(n, ' ');
             cout << "Usage:" << endl;
-            cout << blank << std::string(argv[0]) << " [options...] [file ...] [dir ...]" << endl;
+            cout << blank << std::string(argv[0]) << " [option...] [file ...] [dir ...]" << endl;
             cout << endl;
             cout << KeyValueArgs::ToString(cmds, n) << endl;
             ::exit(EXIT_SUCCESS);
+        } else if (value.empty()) {
+            inputPaths.push_back(key);
+        } else {
+            cerr << "Invalid argument: " << key;
+            if (!value.empty()) {
+                cerr << "=" << value;
+            }
+            cerr << endl;
+            ::exit(EXIT_FAILURE);
         }
-        if (value.empty()) {
-            switch (FileInfo(key).Type()) {
-                case FileType::Directory: {
-                    auto files = Dir::ListDir(key);
-                    std::transform(files.begin(), files.end(), files.begin(), [&](const std::string& file) {
-                        return key + "/" + file;
-                    });
-                    allfiles.reserve(allfiles.size() + files.size());
-                    allfiles.insert(allfiles.end(), files.begin(), files.end());
-                    return;
-                };
-                case FileType::Regular: {
-                    allfiles.push_back(std::move(key));
-                    return;
-                };
-                default: break;
+    });
+    if (inputPaths.empty()) {
+        inputPaths.push_back(".");
+    }
+
+    // scan source files
+    vector<string> sourcePaths;
+    for (const auto& path: inputPaths) {
+        switch (FileInfo(path).Type()) {
+            case FileType::Regular: {
+                sourcePaths.push_back(path);
+                break;
+            };
+            case FileType::Directory: {
+                auto subpaths = Dir::ListDir(path);
+                sourcePaths.reserve(sourcePaths.size() + subpaths.size());
+                for (const auto& subpath: subpaths) {
+                    const auto baseName = FileInfo::BaseName(subpath);
+                    if (baseName == "." || baseName == "..") {
+                        continue;
+                    }
+                    const auto filePath = path + "/" + subpath;
+                    sourcePaths.push_back(filePath);
+                }
+                break;
+            };
+            default: {
+                break;
             }
         }
-        cerr << "Bad argument: " << key;
-        if (!value.empty()) {
-            cerr << "=" << value;
-        }
-        cerr << endl;
-        ::exit(EXIT_FAILURE);
-    });
-
-    // prepare source files
-    if (allfiles.empty()) {
-        allfiles = Dir::ListDir(".");
     }
-    if (allfiles.empty()) {
+    std::sort(sourcePaths.begin(), sourcePaths.end(), [](const auto& a, const auto& b) {
+        return std::strcoll(a.c_str(), b.c_str()) < 0 ? true : false;
+    });
+    if (sourcePaths.empty()) {
         cerr << "FATAL: nothing to build!" << endl;
         ::exit(EXIT_FAILURE);
     }
-    std::sort(allfiles.begin(), allfiles.end(), [](const auto& a, const auto& b) {
-        return std::strcoll(a.c_str(), b.c_str()) < 0 ? true : false;
-    });
 
-    // prepare work directory
+    // ensure work directory
     if (!args["workdir"].empty()) {
         auto& dir = args["workdir"];
         if (dir[dir.size()-1] != '/') {
@@ -142,7 +153,7 @@ int main(int argc, char* argv[])
         bool hasCpp = false;
         const auto& ldorder = args["ldorder"];
         std::vector<std::pair<size_t, std::string>> headObjects;
-        for (const auto& file: allfiles) {
+        for (const auto& file: sourcePaths) {
             const auto& outdir = args["workdir"];
             bool isCpp = false;
             auto unit = TransUnit::Make(file, outdir, args, isCpp);
