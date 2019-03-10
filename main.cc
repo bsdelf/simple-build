@@ -113,7 +113,8 @@ int main(int argc, char* argv[])
                 break;
             };
             default: {
-                break;
+                cerr << "Invalid argument: " << path << endl;
+                ::exit(EXIT_FAILURE);
             }
         }
     }
