@@ -3,11 +3,11 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include <unordered_map>
+#include <map>
 
 class KeyValueArgs {
   public:
-    using Args = std::unordered_map<std::string, std::string>;
+    using Args = std::map<std::string, std::string>;
 
     struct Command {
       std::string key;
@@ -134,7 +134,7 @@ class KeyValueArgs {
     template <class OnUnknown>
     static auto Parse(int argc, char** argv, const std::vector<Command>& cmds, OnUnknown on_unknown) {
         Args args;
-        std::unordered_map<std::string, size_t> indexed_cmds;
+        std::map<std::string, size_t> indexed_cmds;
         for (size_t i = 0; i < cmds.size(); ++i) {
           const auto& cmd = cmds[i];
           if (cmd) {
