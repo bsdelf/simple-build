@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
             const size_t n = 8;
             const std::string blank(n, ' ');
             cout << "Usage:" << endl;
-            cout << blank << std::string(argv[0]) << " [option...] [file ...] [dir ...]" << endl;
+            cout << blank << std::string(argv[0]) << " [option ...] [file ...] [directory ...]" << endl;
             cout << endl;
             cout << KeyValueArgs::ToString(cmds, n) << endl;
             ::exit(EXIT_SUCCESS);
