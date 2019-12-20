@@ -5,7 +5,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <filesystem>
 #include <regex>
+#include <string>
+#include <vector>
 
 // since Apple doesn't complaint with POSIX:2008
 #ifdef __APPLE__
@@ -35,17 +38,11 @@ auto DoCmd(const std::string& cmd) -> std::string {
 auto RegexSplit(const std::string& str, const std::string& pattern) -> std::vector<std::string> {
   std::regex re{pattern};
   std::sregex_token_iterator
-      first{str.begin(), str.end(), re, -1},
-      last;
+    first{str.begin(), str.end(), re, -1},
+    last;
   return {first, last};
 }
 
-auto IsNewer(const std::string& f1, const std::string& f2) -> bool {
-  struct stat s1, s2;
-  ::memset(&s1, 0, sizeof(struct stat));
-  ::memset(&s2, 0, sizeof(struct stat));
-
-  ::stat(f1.c_str(), &s1);
-  ::stat(f2.c_str(), &s2);
-  return ((s1.st_mtim.tv_sec == s2.st_mtim.tv_sec) ? (s1.st_mtim.tv_nsec > s2.st_mtim.tv_nsec) : (s1.st_mtim.tv_sec > s2.st_mtim.tv_sec));
+bool IsNewer(const std::string& p1, const std::string& p2) {
+  return std::filesystem::last_write_time(p1) > std::filesystem::last_write_time(p2);
 }

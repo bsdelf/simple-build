@@ -3,14 +3,11 @@
 
 #include <algorithm>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "scx/Dir.h"
-#include "scx/FileInfo.h"
-using namespace scx;
 
 #include "Compiler.h"
 #include "TransUnit.h"
@@ -28,13 +25,13 @@ int main(int argc, char* argv[]) {
     .On("verbose", "enable verbose output", ArgumentParser::Set("0", "1"))
     .Split()
     .On("as", "set assembler", ArgumentParser::Set("as", "as"))
-    .On("asflags", "add assembler flags", ArgumentParser::Join({}, {}))
+    .On("asflags", "add assembler flags", ArgumentParser::Join("", {}))
     .On("cc", "set c compiler", ArgumentParser::Set("cc", "cc"))
-    .On("cflags", "add c compiler flags", ArgumentParser::Join({}, {}))
+    .On("cflags", "add c compiler flags", ArgumentParser::Join("", {}))
     .On("cxx", "set c++ compiler", ArgumentParser::Set("c++", "c++"))
-    .On("cxxflags", "add c++ compiler flags", ArgumentParser::Join({}, {}))
+    .On("cxxflags", "add c++ compiler flags", ArgumentParser::Join("", {}))
     .On("ld", "set linker", ArgumentParser::Set("cc", "cc"))
-    .On("ldflags", "add linker flags", ArgumentParser::Join({}, {}))
+    .On("ldflags", "add linker flags", ArgumentParser::Join("", {}))
     .On("ldorder", "set linkage order", ArgumentParser::Set({}, {}))
     .On("prefix", "add search directories",
         ArgumentParser::JoinTo(
@@ -116,28 +113,22 @@ int main(int argc, char* argv[]) {
   // scan source files
   std::vector<std::string> source_paths;
   for (const auto& path : input_paths) {
-    switch (FileInfo(path).Type()) {
-      case FileType::Regular: {
-        source_paths.push_back(path);
-        break;
-      };
-      case FileType::Directory: {
-        auto subpaths = Dir::ListDir(path);
-        source_paths.reserve(source_paths.size() + subpaths.size());
-        for (const auto& subpath : subpaths) {
-          const auto baseName = FileInfo::BaseName(subpath);
-          if (baseName == "." || baseName == "..") {
-            continue;
+    if (std::filesystem::is_regular_file(path)) {
+      source_paths.push_back(path);
+    } else if (std::filesystem::is_directory(path)) {
+      WalkDirectory(
+        ".",
+        [&](const std::filesystem::path& path) {
+          return path.has_extension() && path.filename().string()[0] != '.';
+        },
+        [&](const std::filesystem::path& path) {
+          if (std::filesystem::is_regular_file(path)) {
+            source_paths.push_back(path.string());
           }
-          const auto filePath = path + "/" + subpath;
-          source_paths.push_back(filePath);
-        }
-        break;
-      };
-      default: {
-        std::cerr << "Invalid path: " << path << std::endl;
-        ::exit(EXIT_FAILURE);
-      }
+        });
+    } else {
+      std::cerr << "Invalid path: " << path << std::endl;
+      ::exit(EXIT_FAILURE);
     }
   }
   std::sort(source_paths.begin(), source_paths.end(), [](const auto& a, const auto& b) {
@@ -149,24 +140,16 @@ int main(int argc, char* argv[]) {
   }
 
   // ensure work directory
-  if (!args["workdir"].empty()) {
-    auto& dir = args["workdir"];
-    if (dir[dir.size() - 1] != '/') {
-      dir += "/";
-    }
-    const auto& info = FileInfo(dir);
-    if (!info.Exists()) {
-      if (!Dir::MakeDir(dir, 0744)) {
-        std::cerr << "Failed to create directory!" << std::endl;
-        std::cerr << "    Directory: " << dir << std::endl;
-        ::exit(EXIT_FAILURE);
-      }
-    } else if (info.Type() != FileType::Directory) {
-      std::cerr << "Bad work directory! " << std::endl;
-      std::cerr << "    Directory: " << dir << std::endl;
-      std::cerr << "    File type: " << FileType::ToString(info.Type()) << std::endl;
+  if (const auto& dir = args.at("workdir"); !std::filesystem::exists(dir)) {
+    const auto ok = std::filesystem::create_directories(dir);
+    if (!ok) {
+      std::cerr
+        << "Failed to create work directory!" << std::endl
+        << "    Directory: " << dir << std::endl;
       ::exit(EXIT_FAILURE);
     }
+    const auto perms = std::filesystem::perms::owner_all | std::filesystem::perms::group_all;
+    std::filesystem::permissions(dir, perms);
   }
 
   // scan translation units
@@ -177,7 +160,7 @@ int main(int argc, char* argv[]) {
     const auto& ldorder = args["ldorder"];
     std::vector<std::pair<size_t, std::string>> headObjects;
     for (const auto& file : source_paths) {
-      const auto& outdir = args["workdir"];
+      const auto& outdir = args.at("workdir");
       bool isCpp = false;
       auto unit = TransUnit::Make(file, outdir, args, isCpp);
       if (!unit) {
@@ -185,7 +168,7 @@ int main(int argc, char* argv[]) {
       }
       hasCpp = hasCpp || isCpp;
       auto pos =
-        ldorder.empty() ? std::string::npos : ldorder.find(FileInfo::BaseName(unit.objfile));
+        ldorder.empty() ? std::string::npos : ldorder.find(std::filesystem::path(unit.objfile).filename().string());
       if (pos != std::string::npos) {
         headObjects.emplace_back(pos, unit.objfile);
       } else {
@@ -248,14 +231,14 @@ int main(int argc, char* argv[]) {
   }
 
   // link
-  bool hasOut = FileInfo(args["workdir"] + args["out"]).Exists();
-  if ((!hasOut || !newUnits.empty()) && args["wol"] != "1") {
+  auto outfile = std::filesystem::path(args.at("workdir")) / std::filesystem::path(args.at("out"));
+  if ((!std::filesystem::exists(outfile) || !newUnits.empty()) && args["wol"] != "1") {
     std::string ldCmd =
-      Join({args["ld"], args["ldflags"], "-o", args["workdir"] + args["out"], allObjects});
+      Join({args["ld"], args["ldflags"], "-o", outfile.string(), allObjects});
     if (verbose) {
       std::cout << "- Link - " << ldCmd << std::endl;
     } else {
-      std::cout << "- Link - " << args["workdir"] + args["out"] << std::endl;
+      std::cout << "- Link - " << outfile.string() << std::endl;
     }
     if (::system(ldCmd.c_str()) != 0) {
       std::cerr << "FATAL: failed to link!" << std::endl;
