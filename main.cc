@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     .On("clean", "clean files", ArgumentParser::Set("0", "1"))
     .On("jobs", "set number of jobs", ArgumentParser::Set("0", "0"))
     .On("out", "set output binary", ArgumentParser::Set("a.out", "a.out"))
-    .On("workdir", "set work directory", ArgumentParser::Set(".", "."))
+    .On("workdir", "set working directory", ArgumentParser::Set(".", "."))
     .On("verbose", "enable verbose output", ArgumentParser::Set("0", "1"))
     .Split()
     .On("as", "set assembler", ArgumentParser::Set("as", "as"))
@@ -106,6 +106,32 @@ int main(int argc, char* argv[]) {
     ::exit(EXIT_SUCCESS);
   }
 
+  // ensure working directory
+  {
+    const std::filesystem::path& dir = args.at("workdir");
+    const auto& status = std::filesystem::status(dir);
+    if (status.type() == std::filesystem::file_type::not_found) {
+      std::error_code err;
+      const auto ok = std::filesystem::create_directories(dir, err);
+      if (!ok) {
+        std::cerr << "Failed to create working directory: " << err.message() << std::endl;
+        ::exit(EXIT_FAILURE);
+      }
+      const auto perms =
+        std::filesystem::perms::owner_all |
+        std::filesystem::perms::group_all;
+      std::filesystem::permissions(dir, perms);
+    } else {
+      if (status.type() != std::filesystem::file_type::directory) {
+        std::cerr << "Working directory has been occupied" << std::endl;
+        ::exit(EXIT_FAILURE);
+      }
+      if ((status.permissions() & std::filesystem::perms::owner_all) == std::filesystem::perms::none) {
+        std::cerr << "Working directory permission denied" << std::endl;
+      }
+    }
+  }
+
   if (input_paths.empty()) {
     input_paths.push_back(".");
   }
@@ -137,19 +163,6 @@ int main(int argc, char* argv[]) {
   if (source_paths.empty()) {
     std::cerr << "FATAL: nothing to build!" << std::endl;
     ::exit(EXIT_FAILURE);
-  }
-
-  // ensure work directory
-  if (const auto& dir = args.at("workdir"); !std::filesystem::exists(dir)) {
-    const auto ok = std::filesystem::create_directories(dir);
-    if (!ok) {
-      std::cerr
-        << "Failed to create work directory!" << std::endl
-        << "    Directory: " << dir << std::endl;
-      ::exit(EXIT_FAILURE);
-    }
-    const auto perms = std::filesystem::perms::owner_all | std::filesystem::perms::group_all;
-    std::filesystem::permissions(dir, perms);
   }
 
   // scan translation units
