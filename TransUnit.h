@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-#include "KeyValueArgs.h"
+#include "ArgumentParser.h"
 
 struct TransUnit {
   std::string srcfile;
@@ -16,5 +16,5 @@ struct TransUnit {
 
   auto Note(bool verbose) const -> std::string;
 
-  static auto Make(const std::string& file, const std::string& outdir, const KeyValueArgs::Args& args, bool& is_cpp) -> TransUnit;
+  static auto Make(const std::string& file, const std::string& outdir, const std::map<std::string, std::string>& args, bool& is_cpp) -> TransUnit;
 };

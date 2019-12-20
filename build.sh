@@ -4,4 +4,4 @@
 # ./build clean
 #
 
-eb c++1z flags="-O2" ldflags="-flto" verbose strict thread workdir=work out=eb "$*"
+eb lto c++17 release optimize verbose strict thread workdir=work out=eb "$*"

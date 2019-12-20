@@ -7,7 +7,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-using namespace std;
 
 #include "scx/Dir.h"
 #include "scx/FileInfo.h"
@@ -18,104 +17,134 @@ using namespace scx;
 #include "Utils.h"
 
 int main(int argc, char* argv[]) {
-  std::vector<KeyValueArgs::Command> cmds = {
-      {"jobs", "set number of jobs", KeyValueArgs::Setter(), "0"},
-      {"out", "set output binary", KeyValueArgs::Setter(), "b.out"},
-      {"workdir", "set work directory", KeyValueArgs::Setter(), "."},
-      {},
-      {"as", "set assembler", KeyValueArgs::Setter(), "as"},
-      {"asflags", "add assembler flags", KeyValueArgs::Jointer(), ""},
-      {"cc", "set c compiler", KeyValueArgs::Setter(), "cc"},
-      {"cflags", "add c compiler flags", KeyValueArgs::Jointer(), ""},
-      {"cxx", "set c++ compiler", KeyValueArgs::Setter(), "c++"},
-      {"cxxflags", "add c++ compiler flags", KeyValueArgs::Jointer(), ""},
-      {"flags", "add c & c++ compiler flags", KeyValueArgs::KeyJointer({"cflags", "cxxflags"})},
-      {"ld", "set linker", KeyValueArgs::Setter(), "cc"},
-      {"ldflags", "add linker flags", KeyValueArgs::Jointer(), ""},
-      {"ldorder", "set link order", KeyValueArgs::Setter(), ""},
-      {"prefix", "add search directories", KeyValueArgs::KeyValueJointer({{"flags", [](const std::string& str) { return "-I" + str + "/include"; }}, {"ldflags", [](const std::string& str) { return "-L" + str + "/lib"; }}})},
-      {},
-      {"verbose", "verbose output", KeyValueArgs::ValueSetter("1"), "0"},
-      {"clean", "remove output files", KeyValueArgs::ValueSetter("1"), "0"},
-      {"nolink", "do not link", KeyValueArgs::ValueSetter("1"), "0"},
-      {"thread", "link against pthread", KeyValueArgs::KeyValueJointer({{"flags", "-pthread"},
-#ifndef __APPLE__
-                                                                        {"ldflags", "-pthread"}
-#endif
-                                         })},
-      {"shared", "build shared library", KeyValueArgs::KeyValueJointer({{"flags", "-fPIC"}, {"ldflags", "-shared"}})},
-      {"pipe", "enable -pipe", KeyValueArgs::KeyValueJointer({{"flags", "-pipe"}})},
-      {"debug", "enable -g", KeyValueArgs::KeyValueJointer({{"flags", "-g"}})},
-      {"release", "enable -DNDEBUG", KeyValueArgs::KeyValueJointer({{"flags", "-DNDEBUG"}})},
-      {"strict", "enable -Wall -Wextra -Werror", KeyValueArgs::KeyValueJointer({{"flags", "-Wall -Wextra -Werror"}})},
-      {"c89", "enable -std=c89", KeyValueArgs::KeyValueJointer({{"cflags", "-std=c89"}})},
-      {"c99", "enable -std=c99", KeyValueArgs::KeyValueJointer({{"cflags", "-std=c99"}})},
-      {"c11", "enable -std=c11", KeyValueArgs::KeyValueJointer({{"cflags", "-std=c11"}})},
-      {"c++11", "enable -std=c++11", KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++11"}})},
-      {"c++1y", "enable -std=c++1y", KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++1y"}})},
-      {"c++14", "enable -std=c++14", KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++14"}})},
-      {"c++1z", "enable -std=c++1z", KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++1z"}})},
-      {"c++17", "enable -std=c++17", KeyValueArgs::KeyValueJointer({{"cxxflags", "-std=c++17"}})},
-  };
+  std::vector<std::string> input_paths;
 
-  // parse command line arguments
-  vector<string> inputPaths;
-  auto args = KeyValueArgs::Parse(argc, argv, cmds, [&](std::string&& key, std::string&& value) {
-    if (key == "help") {
-      const size_t n = 8;
-      const std::string blank(n, ' ');
-      cout << "Usage:" << endl;
-      cout << blank << std::string(argv[0]) << " [option ...] [file ...] [directory ...]" << endl;
-      cout << endl;
-      cout << KeyValueArgs::ToString(cmds, n) << endl;
-      ::exit(EXIT_SUCCESS);
-    } else if (value.empty()) {
-      inputPaths.push_back(key);
-    } else {
-      cerr << "Invalid argument: " << key;
-      if (!value.empty()) {
-        cerr << "=" << value;
+  ArgumentParser parser;
+  parser
+    .On("clean", "clean files", ArgumentParser::Set("0", "1"))
+    .On("jobs", "set number of jobs", ArgumentParser::Set("0", "0"))
+    .On("out", "set output binary", ArgumentParser::Set("a.out", "a.out"))
+    .On("workdir", "set work directory", ArgumentParser::Set(".", "."))
+    .On("verbose", "enable verbose output", ArgumentParser::Set("0", "1"))
+    .Split()
+    .On("as", "set assembler", ArgumentParser::Set("as", "as"))
+    .On("asflags", "add assembler flags", ArgumentParser::Join({}, {}))
+    .On("cc", "set c compiler", ArgumentParser::Set("cc", "cc"))
+    .On("cflags", "add c compiler flags", ArgumentParser::Join({}, {}))
+    .On("cxx", "set c++ compiler", ArgumentParser::Set("c++", "c++"))
+    .On("cxxflags", "add c++ compiler flags", ArgumentParser::Join({}, {}))
+    .On("ld", "set linker", ArgumentParser::Set("cc", "cc"))
+    .On("ldflags", "add linker flags", ArgumentParser::Join({}, {}))
+    .On("ldorder", "set linkage order", ArgumentParser::Set({}, {}))
+    .On("prefix", "add search directories",
+        ArgumentParser::JoinTo(
+          "cflags", {}, {},
+          [](auto& input) { input = "-I" + input + "/include"; }),
+        ArgumentParser::JoinTo(
+          "cxxflags", {}, {},
+          [](auto& input) { input = "-I" + input + "/include"; }),
+        ArgumentParser::JoinTo(
+          "ldflags", {}, {},
+          [](auto& input) { input = "-L" + input + "/lib"; }))
+    .Split()
+    .On("wol", "without link", ArgumentParser::Set("0", "1"))
+    .On("thread", "use pthreads",
+        ArgumentParser::JoinTo("cflags", {}, "-pthread"),
+        ArgumentParser::JoinTo("cxxflags", {}, "-pthread")
+#ifndef __APPLE__
+          ,
+        ArgumentParser::JoinTo("ldflags", {}, "-pthread")
+#endif
+          )
+    .On("optimize", "set optimize level",
+        ArgumentParser::JoinTo("cflags", {}, "2", [](auto& input) { input = "-O" + input; }),
+        ArgumentParser::JoinTo("cxxflags", {}, "2", [](auto& input) { input = "-O" + input; }))
+    .On("debug", "enable -g",
+        ArgumentParser::JoinTo("cflags", {}, "-g"),
+        ArgumentParser::JoinTo("cxxflags", {}, "-g"))
+    .On("release", "enable -DNDEBUG",
+        ArgumentParser::JoinTo("cflags", {}, "-DNDEBUG"),
+        ArgumentParser::JoinTo("cxxflags", {}, "-DNDEBUG"))
+    .On("strict", "enable -Wall -Wextra -Werror",
+        ArgumentParser::JoinTo("cflags", {}, "-Wall -Wextra -Werror"),
+        ArgumentParser::JoinTo("cxxflags", {}, "-Wall -Wextra -Werror"))
+    .On("shared", "enable -fPIC -shared",
+        ArgumentParser::JoinTo("cflags", {}, "-fPIC"),
+        ArgumentParser::JoinTo("cxxflags", {}, "-fPIC"),
+        ArgumentParser::JoinTo("ldflags", {}, "-shared"))
+    .On("lto", "enable -flto", ArgumentParser::JoinTo("ldflags", {}, "-flto"))
+    .On("c89", "enable -std=c89", ArgumentParser::JoinTo("cflags", {}, "-std=c89"))
+    .On("c99", "enable -std=c99", ArgumentParser::JoinTo("cflags", {}, "-std=c99"))
+    .On("c11", "enable -std=c11", ArgumentParser::JoinTo("cflags", {}, "-std=c11"))
+    .On("c18", "enable -std=c18", ArgumentParser::JoinTo("cflags", {}, "-std=c18"))
+    .On("c++11", "enable -std=c++11", ArgumentParser::JoinTo("cxxflags", {}, "-std=c++11"))
+    .On("c++14", "enable -std=c++14", ArgumentParser::JoinTo("cxxflags", {}, "-std=c++14"))
+    .On("c++17", "enable -std=c++17", ArgumentParser::JoinTo("cxxflags", {}, "-std=c++17"))
+    .On("c++20", "enable -std=c++20", ArgumentParser::JoinTo("cxxflags", {}, "-std=c++20"))
+    .Split()
+    .On("help", "show help", ArgumentParser::Set("0", "1"))
+    .OnUnknown([&](std::string key, std::optional<std::string> value) {
+      if (value) {
+        std::cerr << "Invalid argument: " << key;
+        if (value) {
+          std::cerr << "=" << *value;
+        }
+        std::cerr << std::endl;
+        ::exit(EXIT_FAILURE);
+      } else {
+        input_paths.push_back(std::move(key));
       }
-      cerr << endl;
-      ::exit(EXIT_FAILURE);
-    }
-  });
-  if (inputPaths.empty()) {
-    inputPaths.push_back(".");
+    })
+    .Parse(argc, argv);
+
+  auto args = parser.Data();
+  if (args["help"] == "1") {
+    const int n = 8;
+    std::cout
+      << "Usage:" << std::endl
+      << std::string(n, ' ') << std::string(argv[0]) << " [option ...] [file ...] [directory ...]" << std::endl
+      << std::endl
+      << parser.FormatHelp(ArgumentParser::FormatHelpOptions{.space_before_key = n})
+      << std::endl;
+    ::exit(EXIT_SUCCESS);
+  }
+
+  if (input_paths.empty()) {
+    input_paths.push_back(".");
   }
 
   // scan source files
-  vector<string> sourcePaths;
-  for (const auto& path : inputPaths) {
+  std::vector<std::string> source_paths;
+  for (const auto& path : input_paths) {
     switch (FileInfo(path).Type()) {
       case FileType::Regular: {
-        sourcePaths.push_back(path);
+        source_paths.push_back(path);
         break;
       };
       case FileType::Directory: {
         auto subpaths = Dir::ListDir(path);
-        sourcePaths.reserve(sourcePaths.size() + subpaths.size());
+        source_paths.reserve(source_paths.size() + subpaths.size());
         for (const auto& subpath : subpaths) {
           const auto baseName = FileInfo::BaseName(subpath);
           if (baseName == "." || baseName == "..") {
             continue;
           }
           const auto filePath = path + "/" + subpath;
-          sourcePaths.push_back(filePath);
+          source_paths.push_back(filePath);
         }
         break;
       };
       default: {
-        cerr << "Invalid argument: " << path << endl;
+        std::cerr << "Invalid path: " << path << std::endl;
         ::exit(EXIT_FAILURE);
       }
     }
   }
-  std::sort(sourcePaths.begin(), sourcePaths.end(), [](const auto& a, const auto& b) {
+  std::sort(source_paths.begin(), source_paths.end(), [](const auto& a, const auto& b) {
     return std::strcoll(a.c_str(), b.c_str()) < 0 ? true : false;
   });
-  if (sourcePaths.empty()) {
-    cerr << "FATAL: nothing to build!" << endl;
+  if (source_paths.empty()) {
+    std::cerr << "FATAL: nothing to build!" << std::endl;
     ::exit(EXIT_FAILURE);
   }
 
@@ -128,26 +157,26 @@ int main(int argc, char* argv[]) {
     const auto& info = FileInfo(dir);
     if (!info.Exists()) {
       if (!Dir::MakeDir(dir, 0744)) {
-        cerr << "Failed to create directory!" << endl;
-        cerr << "    Directory: " << dir << endl;
+        std::cerr << "Failed to create directory!" << std::endl;
+        std::cerr << "    Directory: " << dir << std::endl;
         ::exit(EXIT_FAILURE);
       }
     } else if (info.Type() != FileType::Directory) {
-      cerr << "Bad work directory! " << endl;
-      cerr << "    Directory: " << dir << endl;
-      cerr << "    File type: " << FileType::ToString(info.Type()) << endl;
+      std::cerr << "Bad work directory! " << std::endl;
+      std::cerr << "    Directory: " << dir << std::endl;
+      std::cerr << "    File type: " << FileType::ToString(info.Type()) << std::endl;
       ::exit(EXIT_FAILURE);
     }
   }
 
   // scan translation units
-  vector<TransUnit> newUnits;
-  string allObjects;
+  std::vector<TransUnit> newUnits;
+  std::string allObjects;
   {
     bool hasCpp = false;
     const auto& ldorder = args["ldorder"];
     std::vector<std::pair<size_t, std::string>> headObjects;
-    for (const auto& file : sourcePaths) {
+    for (const auto& file : source_paths) {
       const auto& outdir = args["workdir"];
       bool isCpp = false;
       auto unit = TransUnit::Make(file, outdir, args, isCpp);
@@ -155,7 +184,8 @@ int main(int argc, char* argv[]) {
         continue;
       }
       hasCpp = hasCpp || isCpp;
-      auto pos = ldorder.empty() ? std::string::npos : ldorder.find(FileInfo::BaseName(unit.objfile));
+      auto pos =
+        ldorder.empty() ? std::string::npos : ldorder.find(FileInfo::BaseName(unit.objfile));
       if (pos != std::string::npos) {
         headObjects.emplace_back(pos, unit.objfile);
       } else {
@@ -165,9 +195,8 @@ int main(int argc, char* argv[]) {
         newUnits.push_back(std::move(unit));
       }
     }
-    std::sort(headObjects.begin(), headObjects.end(), [](const auto& a, const auto& b) {
-      return a.first > b.first;
-    });
+    std::sort(headObjects.begin(), headObjects.end(),
+              [](const auto& a, const auto& b) { return a.first > b.first; });
     for (auto&& headObject : headObjects) {
       allObjects.insert(0, std::move(headObject.second) + ' ');
     }
@@ -180,23 +209,23 @@ int main(int argc, char* argv[]) {
   // Debug info.
   {
     std::string split(80, '-');
-    cout << "New translation units: " << endl;
-    cout << split << endl;
+    cout << "New translation units: " << std::endl;
+    cout << split << std::endl;
     for (const auto& unit : newUnits) {
-      cout << unit.Note(true) << endl;
+      cout << unit.Note(true) << std::endl;
       for (const auto& dep : unit.deps) {
         cout << dep << ", ";
       }
-      cout << endl
-           << split << endl;
+      cout << std::endl
+           << split << std::endl;
     }
   }
 #endif
 
   // clean
   if (args["clean"] == "1") {
-    const string& cmd = "rm -f " + args["workdir"] + args["out"] + ' ' + allObjects;
-    cout << cmd << endl;
+    const std::string& cmd = "rm -f " + args["workdir"] + args["out"] + ' ' + allObjects;
+    std::cout << cmd << std::endl;
     ::system(cmd.c_str());
     ::exit(EXIT_SUCCESS);
   }
@@ -204,15 +233,15 @@ int main(int argc, char* argv[]) {
   // compile
   auto verbose = args["verbose"] == "1";
   if (!newUnits.empty()) {
-    cout << "* Build: ";
+    std::cout << "* Build: ";
     if (verbose) {
       for (size_t i = 0; i < newUnits.size(); ++i) {
-        cout << newUnits[i].srcfile << ((i + 1 < newUnits.size()) ? ", " : "");
+        std::cout << newUnits[i].srcfile << ((i + 1 < newUnits.size()) ? ", " : "");
       }
     } else {
-      cout << newUnits.size() << (newUnits.size() > 1 ? " files" : " file");
+      std::cout << newUnits.size() << (newUnits.size() > 1 ? " files" : " file");
     }
-    cout << endl;
+    std::cout << std::endl;
     if (Compiler::Run(newUnits, std::stoi(args["jobs"]), verbose) != 0) {
       ::exit(EXIT_FAILURE);
     }
@@ -220,18 +249,19 @@ int main(int argc, char* argv[]) {
 
   // link
   bool hasOut = FileInfo(args["workdir"] + args["out"]).Exists();
-  if ((!hasOut || !newUnits.empty()) && args["nolink"] != "1") {
-    string ldCmd = Join({args["ld"], args["ldflags"], "-o", args["workdir"] + args["out"], allObjects});
+  if ((!hasOut || !newUnits.empty()) && args["wol"] != "1") {
+    std::string ldCmd =
+      Join({args["ld"], args["ldflags"], "-o", args["workdir"] + args["out"], allObjects});
     if (verbose) {
-      cout << "- Link - " << ldCmd << endl;
+      std::cout << "- Link - " << ldCmd << std::endl;
     } else {
-      cout << "- Link - " << args["workdir"] + args["out"] << endl;
+      std::cout << "- Link - " << args["workdir"] + args["out"] << std::endl;
     }
     if (::system(ldCmd.c_str()) != 0) {
-      cerr << "FATAL: failed to link!" << endl;
-      cerr << "    file:   " << allObjects << endl;
-      cerr << "    ld:     " << args["ld"] << endl;
-      cerr << "    ldflags: " << args["ldflags"] << endl;
+      std::cerr << "FATAL: failed to link!" << std::endl;
+      std::cerr << "    file:   " << allObjects << std::endl;
+      std::cerr << "    ld:     " << args["ld"] << std::endl;
+      std::cerr << "    ldflags: " << args["ldflags"] << std::endl;
       ::exit(EXIT_FAILURE);
     }
   }

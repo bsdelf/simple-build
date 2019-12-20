@@ -43,7 +43,7 @@ TransUnit MakeForAsm(const std::string& srcfile, const std::string& objfile, con
 #endif
 }
 
-auto TransUnit::Make(const std::string& file, const std::string& outdir, const KeyValueArgs::Args& args, bool& is_cpp) -> TransUnit {
+auto TransUnit::Make(const std::string& file, const std::string& outdir, const std::map<std::string, std::string>& args, bool& is_cpp) -> TransUnit {
   FileInfo fileinfo(file);
   if (fileinfo.Type() == FileType::Regular) {
     std::string objfile = outdir + fileinfo.BaseName() + ".o";

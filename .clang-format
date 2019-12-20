@@ -1,6 +1,9 @@
 BasedOnStyle: Chromium
 IncludeBlocks: Preserve
 ColumnLimit: 0
+IndentWidth: 2
+ContinuationIndentWidth: 2
+ConstructorInitializerIndentWidth: 2
 MaxEmptyLinesToKeep: 1
 AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: false
