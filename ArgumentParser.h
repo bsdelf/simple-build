@@ -8,6 +8,12 @@
 
 class ArgumentParser {
  public:
+  using ValueHandler = std::function<void(std::optional<std::string>)>;
+
+ private:
+  using KeyValueHandler = std::function<void(std::string, std::optional<std::string>)>;
+
+ public:
   ArgumentParser& Parse(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
       std::string arg(argv[i]);
@@ -51,39 +57,37 @@ class ArgumentParser {
   };
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const std::string& help, Set set, T... rest) {
+  ArgumentParser& On(const std::string& key, const std::string& help, const Set& set, const T&... rest) {
     key_helps_.emplace_back(key, help);
     return On(key, set, rest...);
   }
 
-  ArgumentParser& On(const std::string& key, Set set) {
+  ArgumentParser& On(const std::string& key, const Set& set) {
     if (set.initial_value) {
-      args_[key] = *set.initial_value;
+      auto value = *set.initial_value;
+      if (set.modifier) {
+        set.modifier(value);
+      }
+      args_.insert_or_assign(key, std::move(value));
     }
     auto handler =
       ([this, key = key,
         default_value = set.default_value,
         modifier = set.modifier](std::optional<std::string> input_value) {
-        auto actual_value = input_value ? input_value : default_value;
+        auto& actual_value = input_value ? input_value : default_value;
         if (actual_value) {
           auto value = std::move(*actual_value);
           if (modifier) {
             modifier(value);
           }
-          auto iter = args_.find(key);
-          if (iter == args_.end()) {
-            args_.emplace(key, std::move(value));
-          } else {
-            iter->second = std::move(value);
-          }
+          args_.insert_or_assign(key, std::move(value));
         }
       });
-    on_keys_[key].push_back(std::move(handler));
-    return *this;
+    return AddValueHandler(key, std::move(handler));
   }
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, Set set, T... rest) {
+  ArgumentParser& On(const std::string& key, const Set& set, const T&... rest) {
     return On(key, set).On(key, rest...);
   }
 
@@ -106,41 +110,38 @@ class ArgumentParser {
   };
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const std::string& help, SetTo set_to, T... rest) {
+  ArgumentParser& On(const std::string& key, const std::string& help, const SetTo& set_to, const T&... rest) {
     key_helps_.emplace_back(key, help);
     return On(key, set_to, rest...);
   }
 
-  ArgumentParser& On(const std::string& key, SetTo set_to) {
-    auto to_key = set_to.key;
+  ArgumentParser& On(const std::string& key, const SetTo& set_to) {
     if (set_to.initial_value) {
-      args_[to_key] = std::move(*set_to.initial_value);
+      auto value = *set_to.initial_value;
+      if (set_to.modifier) {
+        set_to.modifier(value);
+      }
+      args_.insert_or_assign(set_to.key, std::move(value));
     }
     auto handler =
       ([this,
-        to_key = to_key,
+        to_key = set_to.key,
         default_value = set_to.default_value,
         modifier = set_to.modifier](std::optional<std::string> input_value) {
-        auto actual_value = input_value ? input_value : default_value;
+        auto& actual_value = input_value ? input_value : default_value;
         if (actual_value) {
           auto value = std::move(*actual_value);
           if (modifier) {
             modifier(value);
           }
-          auto iter = args_.find(to_key);
-          if (iter == args_.end()) {
-            args_.emplace(to_key, std::move(value));
-          } else {
-            iter->second = std::move(value);
-          }
+          args_.insert_or_assign(to_key, std::move(value));
         }
       });
-    on_keys_[key].push_back(std::move(handler));
-    return *this;
+    return AddValueHandler(key, std::move(handler));
   }
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, SetTo set_to, T... rest) {
+  ArgumentParser& On(const std::string& key, const SetTo& set_to, const T&... rest) {
     return On(key, set_to).On(key, rest...);
   }
 
@@ -180,28 +181,33 @@ class ArgumentParser {
   };
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const std::string& help, Join join, T... rest) {
+  ArgumentParser& On(const std::string& key, const std::string& help, const Join& join, const T&... rest) {
     key_helps_.emplace_back(key, help);
     return On(key, join, rest...);
   }
 
-  ArgumentParser& On(const std::string& key, Join join) {
-    auto separator = join.separator;
+  ArgumentParser& On(const std::string& key, const Join& join) {
     if (join.initial_value) {
+      auto value = *join.initial_value;
+      if (join.modifier) {
+        join.modifier(value);
+      }
       auto iter = args_.find(key);
       if (iter == args_.end()) {
-        args_.emplace(key, std::move(*join.initial_value));
+        args_.emplace(key, std::move(value));
+      } else if (iter->second.empty()) {
+        iter->second = std::move(value);
       } else {
-        iter->second = iter->second + separator + std::move(*join.initial_value);
+        iter->second += join.separator + value;
       }
     }
     auto handler =
       ([this,
         key = key,
-        separator = separator,
+        separator = join.separator,
         default_value = join.default_value,
         modifier = join.modifier](std::optional<std::string> input_value) {
-        auto actual_value = input_value ? input_value : default_value;
+        auto& actual_value = input_value ? input_value : default_value;
         if (actual_value) {
           auto value = std::move(*actual_value);
           if (modifier) {
@@ -210,17 +216,18 @@ class ArgumentParser {
           auto iter = args_.find(key);
           if (iter == args_.end()) {
             args_.emplace(key, std::move(value));
+          } else if (iter->second.empty()) {
+            iter->second = std::move(value);
           } else {
-            iter->second = iter->second + separator + value;
+            iter->second += separator + value;
           }
         }
       });
-    on_keys_[key].push_back(std::move(handler));
-    return *this;
+    return AddValueHandler(key, std::move(handler));
   }
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, Join join, T... rest) {
+  ArgumentParser& On(const std::string& key, const Join& join, const T&... rest) {
     return On(key, join).On(key, rest...);
   }
 
@@ -269,29 +276,33 @@ class ArgumentParser {
   };
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const std::string& help, JoinTo join_to, T... rest) {
+  ArgumentParser& On(const std::string& key, const std::string& help, const JoinTo& join_to, const T&... rest) {
     key_helps_.emplace_back(key, help);
     return On(key, join_to, rest...);
   }
 
-  ArgumentParser& On(const std::string& key, JoinTo join_to) {
-    auto to_key = join_to.key;
-    auto separator = join_to.separator;
+  ArgumentParser& On(const std::string& key, const JoinTo& join_to) {
     if (join_to.initial_value) {
-      auto iter = args_.find(to_key);
+      auto value = *join_to.initial_value;
+      if (join_to.modifier) {
+        join_to.modifier(value);
+      }
+      auto iter = args_.find(join_to.key);
       if (iter == args_.end()) {
-        args_.emplace(to_key, std::move(*join_to.initial_value));
+        args_.emplace(join_to.key, std::move(value));
+      } else if (iter->second.empty()) {
+        iter->second = std::move(value);
       } else {
-        iter->second = iter->second + separator + *join_to.initial_value;
+        iter->second += join_to.separator + value;
       }
     }
     auto handler =
       ([this,
-        to_key = to_key,
-        separator = separator,
+        to_key = join_to.key,
+        separator = join_to.separator,
         default_value = join_to.default_value,
         modifier = join_to.modifier](std::optional<std::string> input_value) {
-        auto actual_value = input_value ? input_value : default_value;
+        auto& actual_value = input_value ? input_value : default_value;
         if (actual_value) {
           auto value = std::move(*actual_value);
           if (modifier) {
@@ -300,17 +311,17 @@ class ArgumentParser {
           auto iter = args_.find(to_key);
           if (iter == args_.end()) {
             args_.emplace(to_key, std::move(value));
-          } else {
-            iter->second = iter->second + separator + value;
-          }
+          } else if (iter->second.empty()) {
+            iter->second = std::move(value);
+          } else
+            iter->second += separator + value;
         }
       });
-    on_keys_[key].push_back(std::move(handler));
-    return *this;
+    return AddValueHandler(key, std::move(handler));
   }
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, JoinTo join_to, T... rest) {
+  ArgumentParser& On(const std::string& key, const JoinTo& join_to, const T&... rest) {
     return On(key, join_to).On(key, rest...);
   }
 
@@ -319,7 +330,7 @@ class ArgumentParser {
     return *this;
   }
 
-  ArgumentParser& OnUnknown(std::function<void(std::string, std::optional<std::string>)> handler) {
+  ArgumentParser& OnUnknown(KeyValueHandler handler) {
     on_unknown_ = std::move(handler);
     return *this;
   }
@@ -371,6 +382,17 @@ class ArgumentParser {
   }
 
  private:
+  ArgumentParser& AddValueHandler(const std::string& key, ValueHandler&& handler) {
+    auto iter = on_keys_.find(key);
+    if (iter == on_keys_.end()) {
+      on_keys_.emplace(key, std::vector<ValueHandler>{std::move(handler)});
+    } else {
+      iter->second.push_back(std::move(handler));
+    }
+    return *this;
+  }
+
+ private:
   struct KeyHelp {
     std::string key;
     std::string help;
@@ -380,7 +402,7 @@ class ArgumentParser {
     }
   };
   std::vector<KeyHelp> key_helps_;
-  std::map<std::string, std::vector<std::function<void(std::optional<std::string>)>>> on_keys_;
-  std::function<void(std::string, std::optional<std::string>)> on_unknown_;
+  std::map<std::string, std::vector<ValueHandler>> on_keys_;
+  KeyValueHandler on_unknown_;
   std::map<std::string, std::string> args_;
 };
