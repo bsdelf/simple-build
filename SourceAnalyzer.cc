@@ -30,9 +30,9 @@ static std::vector<std::string> GetDepfiles(
   return dependencies;
 }
 
-std::string BuildOutputPath(const std::string& workdir, const std::string& path) {
-  auto source = std::filesystem::path(path).filename();
-  return (std::filesystem::path(workdir) / source).string() + ".o";
+static std::string BuildOutputPath(const std::string& workdir, const std::string& source) {
+  auto filename = std::filesystem::path(source).filename();
+  return (std::filesystem::path(workdir) / filename).string() + ".o";
 }
 
 SourceFile SourceAnalyzer::Process(const std::string& path) const {

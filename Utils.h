@@ -12,7 +12,7 @@ inline auto ToLower(std::string str) {
   return str;
 }
 
-std::string JoinStrings(std::initializer_list<std::string> strs, const std::string& data = " ");
+std::string JoinStrings(std::initializer_list<std::string> strs, const std::string& separator = " ");
 
 std::vector<std::string> RegexSplit(const std::string& str, const std::string& pattern);
 

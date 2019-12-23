@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-std::string JoinStrings(std::initializer_list<std::string> strs, const std::string& data) {
+std::string JoinStrings(std::initializer_list<std::string> strs, const std::string& separator) {
   auto iter = strs.begin();
   if (iter == strs.end()) {
     return "";
@@ -15,7 +15,10 @@ std::string JoinStrings(std::initializer_list<std::string> strs, const std::stri
   std::string result = *iter++;
   for (; iter != strs.end(); ++iter) {
     if (!iter->empty()) {
-      result += data + *iter;
+      if (!result.empty()) {
+        result += separator;
+      }
+      result += *iter;
     }
   }
   return result;
