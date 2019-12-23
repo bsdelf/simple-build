@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
     }
     std::cout << std::endl;
     {
-      size_t index = 0;
+      size_t current = 0;
       const size_t total = new_files.size() + (without_link ? 0 : 1);
       std::atomic_bool ok = true;
       std::mutex mutex;
@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
             const auto& file = new_files[i];
             {
               std::lock_guard<std::mutex> locker(mutex);
-              const int percent = ++index * 100 / total;
+              const int percent = ++current * 100 / total;
               std::cout << "[ " << std::setfill(' ') << std::setw(3) << percent << "% ] ";
               if (is_verbose) {
                 std::cout << file.command;
