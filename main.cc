@@ -18,28 +18,9 @@
 using namespace ccbb;
 
 int main(int argc, char* argv[]) {
-  std::vector<std::string> input_paths;
-
-  auto args =
-    MakeParser()
-      .OnUnknown([&](std::string key, std::optional<std::string> value) {
-        if (!value &&
-            (std::filesystem::is_regular_file(key) ||
-             std::filesystem::is_directory(key))) {
-          input_paths.push_back(std::move(key));
-        } else {
-          std::cerr << "(E) invalid argument: " << key;
-          if (value) {
-            std::cerr << "=" << *value;
-          }
-          std::cerr << std::endl;
-          std::exit(EXIT_FAILURE);
-        }
-      })
-      .Parse(argc, argv)
-      .Data();
-
-  const auto is_verbose = args.at("verbose") == "1";
+  auto result = MakeParser().Parse(argc - 1, argv + 1);
+  auto& args = result.args;
+  const auto verbose = args.at("verbose") == "1";
   const auto without_link = args.at("wol") == "1";
   const auto target = std::filesystem::path(args.at("workdir")) / std::filesystem::path(args.at("target"));
 
@@ -84,15 +65,15 @@ int main(int argc, char* argv[]) {
 
   // gather source files
   std::vector<std::string> source_paths;
-  if (input_paths.empty()) {
-    input_paths.push_back(".");
+  if (result.rests.empty()) {
+    result.rests.push_back(".");
   }
-  for (const auto& path : input_paths) {
-    if (std::filesystem::is_regular_file(path)) {
-      source_paths.push_back(path);
-    } else if (std::filesystem::is_directory(path)) {
+  for (const auto& arg : result.rests) {
+    if (std::filesystem::is_regular_file(arg)) {
+      source_paths.push_back(arg);
+    } else if (std::filesystem::is_directory(arg)) {
       WalkDirectory(
-        path,
+        arg,
         [&](const std::filesystem::path& path) {
           return path.filename().string()[0] != '.';
         },
@@ -102,7 +83,7 @@ int main(int argc, char* argv[]) {
           }
         });
     } else {
-      std::cerr << "(E) invalid path: " << path << std::endl;
+      std::cerr << "(E) invalid option or path: " << arg << std::endl;
       std::exit(EXIT_FAILURE);
     }
   }
@@ -155,7 +136,7 @@ int main(int argc, char* argv[]) {
   // compile source files
   if (!new_files.empty()) {
     std::cout << "* Build: ";
-    if (is_verbose) {
+    if (verbose) {
       for (size_t i = 0; i < new_files.size(); ++i) {
         std::cout << new_files[i].source << ((i + 1 < new_files.size()) ? ", " : "");
       }
@@ -177,7 +158,7 @@ int main(int argc, char* argv[]) {
               std::lock_guard<std::mutex> locker(mutex);
               const int percent = ++current * 100 / total;
               std::cout << "[ " << std::setfill(' ') << std::setw(3) << percent << "% ] ";
-              if (is_verbose) {
+              if (verbose) {
                 std::cout << file.command;
               } else {
                 std::cout << (file.source + " => " + file.output);
@@ -200,7 +181,7 @@ int main(int argc, char* argv[]) {
   if (!without_link && (!new_files.empty() || !std::filesystem::exists(target))) {
     std::string command =
       JoinStrings({args.at("ld"), args.at("ldflags"), "-o", target.string(), all_objects});
-    if (is_verbose) {
+    if (verbose) {
       std::cout << "[ 100% ] " << command << std::endl;
     } else {
       std::cout << "[ 100% ] " << target.string() << std::endl;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <functional>
 #include <map>
 #include <optional>
@@ -9,40 +8,37 @@
 
 class ArgumentParser {
  public:
-  using ValueHandler = std::function<void(std::map<std::string, std::string>&, std::optional<std::string>)>;
+  struct Result {
+    std::map<std::string, std::string> args;
+    std::vector<std::string> rests;
+  };
 
- private:
-  using UnknownKeyValueHandler = std::function<void(std::string, std::optional<std::string>)>;
-
- public:
-  ArgumentParser& Parse(int argc, char** argv) {
-    for (int i = 1; i < argc; ++i) {
-      std::string arg(argv[i]);
-      if (arg.empty()) {
+  Result Parse(int argc, char** argv, const std::string& separator = "=") const {
+    Result result{initial_key_values_, {}};
+    for (int i = 0; i < argc; ++i) {
+      if (!argv[i]) {
         continue;
       }
+      std::string arg(argv[i]);
       std::string key;
       std::optional<std::string> value;
-      const auto pos = std::min(arg.find('='), arg.size());
-      if (pos < arg.size()) {
+      if (auto pos = arg.find(separator); pos != std::string::npos) {
         key = arg.substr(0, pos);
-        value = arg.substr(pos + 1);
+        value = arg.substr(pos + separator.size());
       } else {
-        key = std::move(arg);
+        key = arg;
       }
-      const auto& iter = on_keys_.find(key);
-      if (iter == on_keys_.end()) {
-        if (on_unknown_) {
-          on_unknown_(std::move(key), std::move(value));
-        }
+      auto iter = key_value_handlers_.find(key);
+      if (iter == key_value_handlers_.end()) {
+        result.rests.push_back(std::move(arg));
       } else {
-        const auto& on_key = iter->second;
-        for (size_t i = 0; i < on_key.size(); ++i) {
-          on_key[i](data_, value);
+        const auto& handlers = iter->second;
+        for (size_t i = 0; i < handlers.size(); ++i) {
+          handlers[i](result.args, value);
         }
       }
     }
-    return *this;
+    return result;
   }
 
   struct Set {
@@ -69,7 +65,7 @@ class ArgumentParser {
       if (set.modifier) {
         set.modifier(value);
       }
-      data_.insert_or_assign(key, std::move(value));
+      initial_key_values_.insert_or_assign(key, std::move(value));
     }
     auto handler =
       ([key = key,
@@ -124,7 +120,7 @@ class ArgumentParser {
       if (set_to.modifier) {
         set_to.modifier(value);
       }
-      data_.insert_or_assign(set_to.key, std::move(value));
+      initial_key_values_.insert_or_assign(set_to.key, std::move(value));
     }
     auto handler =
       ([to_key = set_to.key,
@@ -196,9 +192,9 @@ class ArgumentParser {
       if (join.modifier) {
         join.modifier(value);
       }
-      auto iter = data_.find(key);
-      if (iter == data_.end()) {
-        data_.emplace(key, std::move(value));
+      auto iter = initial_key_values_.find(key);
+      if (iter == initial_key_values_.end()) {
+        initial_key_values_.emplace(key, std::move(value));
       } else if (iter->second.empty()) {
         iter->second = std::move(value);
       } else {
@@ -292,9 +288,9 @@ class ArgumentParser {
       if (join_to.modifier) {
         join_to.modifier(value);
       }
-      auto iter = data_.find(join_to.key);
-      if (iter == data_.end()) {
-        data_.emplace(join_to.key, std::move(value));
+      auto iter = initial_key_values_.find(join_to.key);
+      if (iter == initial_key_values_.end()) {
+        initial_key_values_.emplace(join_to.key, std::move(value));
       } else if (iter->second.empty()) {
         iter->second = std::move(value);
       } else {
@@ -336,16 +332,10 @@ class ArgumentParser {
     return *this;
   }
 
-  ArgumentParser& OnUnknown(UnknownKeyValueHandler handler) {
-    on_unknown_ = std::move(handler);
-    return *this;
-  }
-
   void Clear() {
     key_helps_.clear();
-    on_keys_.clear();
-    on_unknown_ = nullptr;
-    data_.clear();
+    key_value_handlers_.clear();
+    initial_key_values_.clear();
   }
 
   struct FormatHelpOptions {
@@ -375,23 +365,13 @@ class ArgumentParser {
     return result;
   }
 
-  auto operator[](const std::string& key) const {
-    std::optional<std::string> value;
-    if (const auto iter = data_.find(key); iter != data_.end()) {
-      value = iter->second;
-    }
-    return value;
-  }
-
-  const std::map<std::string, std::string>& Data() const {
-    return data_;
-  }
-
  private:
+  using ValueHandler = std::function<void(std::map<std::string, std::string>&, std::optional<std::string>)>;
+
   ArgumentParser& AddValueHandler(const std::string& key, ValueHandler&& handler) {
-    auto iter = on_keys_.find(key);
-    if (iter == on_keys_.end()) {
-      on_keys_.emplace(key, std::vector<ValueHandler>{std::move(handler)});
+    auto iter = key_value_handlers_.find(key);
+    if (iter == key_value_handlers_.end()) {
+      key_value_handlers_.emplace(key, std::vector<ValueHandler>{std::move(handler)});
     } else {
       iter->second.push_back(std::move(handler));
     }
@@ -408,7 +388,6 @@ class ArgumentParser {
     }
   };
   std::vector<KeyHelp> key_helps_;
-  std::map<std::string, std::vector<ValueHandler>> on_keys_;
-  UnknownKeyValueHandler on_unknown_;
-  std::map<std::string, std::string> data_;
+  std::map<std::string, std::vector<ValueHandler>> key_value_handlers_;
+  std::map<std::string, std::string> initial_key_values_;
 };
