@@ -1,27 +1,25 @@
 #pragma once
 
 #include <filesystem>
+#include <initializer_list>
 #include <string>
 #include <vector>
 
-auto DoCmd(const std::string& cmd) -> std::string;
+inline auto ToLower(std::string str) {
+  std::transform(
+    str.begin(), str.end(), str.begin(),
+    [](auto c) { return std::tolower(c); });
+  return str;
+}
 
-auto RegexSplit(const std::string& str, const std::string& pattern) -> std::vector<std::string>;
+std::string JoinStrings(std::initializer_list<std::string> strs, const std::string& data = " ");
 
-bool IsNewer(const std::string& p1, const std::string& p2);
+std::vector<std::string> RegexSplit(const std::string& str, const std::string& pattern);
 
-inline auto Join(std::initializer_list<std::string> lst, const std::string& data = " ") -> std::string {
-  auto iter = lst.begin();
-  if (iter == lst.end()) {
-    return "";
-  }
-  std::string result = *iter++;
-  for (; iter != lst.end(); ++iter) {
-    if (!iter->empty()) {
-      result += data + *iter;
-    }
-  }
-  return result;
+std::string RunCommand(const std::string& cmd);
+
+inline bool IsNewer(const std::string& p1, const std::string& p2) {
+  return std::filesystem::last_write_time(p1) > std::filesystem::last_write_time(p2);
 }
 
 template <class Filter, class Collector>

@@ -2,18 +2,28 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <filesystem>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "Compiler.h"
-#include "TransUnit.h"
+#include "ArgumentParser.h"
+#include "Executor.h"
+#include "SourceAnalyzer.h"
 #include "Utils.h"
 
+#include "BlockingQueue.h"
+#include "Semaphore.h"
+using namespace ccbb;
+
 int main(int argc, char* argv[]) {
+  Executor executor;
+  executor.Start();
+
   std::vector<std::string> input_paths;
 
   ArgumentParser parser;
@@ -97,6 +107,8 @@ int main(int argc, char* argv[]) {
     .Parse(argc, argv);
 
   auto args = parser.Data();
+  const auto is_verbose = args.at("verbose") == "1";
+  const auto target = std::filesystem::path(args.at("workdir")) / std::filesystem::path(args.at("target"));
 
   // show help
   if (args.at("help") == "1") {
@@ -137,7 +149,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  // scan source files
+  // gather potential source files
   if (input_paths.empty()) {
     input_paths.push_back(".");
   }
@@ -169,82 +181,93 @@ int main(int argc, char* argv[]) {
     ::exit(EXIT_SUCCESS);
   }
 
-  // scan translation units
-  std::vector<TransUnit> newUnits;
-  std::string allObjects;
+  // identify translation units
+  std::vector<SourceFile> new_files;
+  std::string all_objects;
   {
-    bool hasCpp = false;
-    const auto& workdir = args.at("workdir");
-    const auto& ldorder = args.at("ldorder");
-    std::vector<std::pair<size_t, std::string>> headObjects;
-    for (const auto& file : source_paths) {
-      bool isCpp = false;
-      auto unit = TransUnit::Make(file, workdir, args, isCpp);
-      if (!unit) {
-        continue;
-      }
-      hasCpp = hasCpp || isCpp;
-      auto pos =
-        ldorder.empty() ? std::string::npos : ldorder.find(std::filesystem::path(unit.objfile).filename().string());
-      if (pos != std::string::npos) {
-        headObjects.emplace_back(pos, unit.objfile);
-      } else {
-        allObjects += unit.objfile + ' ';
-      }
-      if (!unit.command.empty()) {
-        newUnits.push_back(std::move(unit));
-      }
+    std::mutex mutex;
+    Semaphore semaphore;
+    SourceAnalyzer analyzer(args);
+    BlockingQueue<SourceFile> mailbox;
+    for (size_t i = 0; i < source_paths.size(); ++i) {
+      executor.Push([&, i = i]() {
+        auto unit = analyzer.Process(source_paths[i]);
+        if (unit) {
+          std::lock_guard<std::mutex> locker(mutex);
+          if (all_objects.empty()) {
+            all_objects = unit.output;
+          } else {
+            all_objects += " " + unit.output;
+          }
+          if (!unit.command.empty()) {
+            new_files.push_back(std::move(unit));
+          }
+        }
+        semaphore.Post();
+      });
     }
-    std::sort(headObjects.begin(), headObjects.end(),
-              [](const auto& a, const auto& b) { return a.first > b.first; });
-    for (auto&& headObject : headObjects) {
-      allObjects.insert(0, std::move(headObject.second) + ' ');
-    }
-    if (hasCpp) {
-      args["ld"] = args["cxx"];
-    }
+    semaphore.Wait(source_paths.size());
   }
 
-  // clean
+  // clean object and and target files
   if (args.at("clean") == "1") {
-    const std::string& cmd = "rm -f " + args["workdir"] + args["target"] + ' ' + allObjects;
+    const std::string& cmd = "rm -f " + target.string() + ' ' + all_objects;
     std::cout << cmd << std::endl;
     ::system(cmd.c_str());
     ::exit(EXIT_SUCCESS);
   }
 
-  // compile
-  auto verbose = args.at("verbose") == "1";
-  if (!newUnits.empty()) {
+  // compile source files
+  if (!new_files.empty()) {
     std::cout << "* Build: ";
-    if (verbose) {
-      for (size_t i = 0; i < newUnits.size(); ++i) {
-        std::cout << newUnits[i].srcfile << ((i + 1 < newUnits.size()) ? ", " : "");
+    if (is_verbose) {
+      for (size_t i = 0; i < new_files.size(); ++i) {
+        std::cout << new_files[i].source << ((i + 1 < new_files.size()) ? ", " : "");
       }
     } else {
-      std::cout << newUnits.size() << (newUnits.size() > 1 ? " files" : " file");
+      std::cout << new_files.size() << (new_files.size() > 1 ? " files" : " file");
     }
     std::cout << std::endl;
-    if (Compiler::Run(newUnits, std::stoi(args["jobs"]), verbose) != 0) {
-      ::exit(EXIT_FAILURE);
+    {
+      int index = 0;
+      std::atomic_bool ok = true;
+      std::mutex mutex;
+      Semaphore semaphore;
+      for (size_t i = 0; i < new_files.size(); ++i) {
+        executor.Push([&, i = i]() {
+          if (ok) {
+            const auto& file = new_files[i];
+            {
+              std::lock_guard<std::mutex> locker(mutex);
+              const int percent = static_cast<double>(++index) / new_files.size() * 100;
+              std::cout << "[ " << std::setfill(' ') << std::setw(3) << percent << "% ] " << file.Note(is_verbose) << std::endl;
+            }
+            ok = ::system(file.command.c_str()) == 0;
+          }
+          semaphore.Post();
+        });
+      }
+      semaphore.Wait(new_files.size());
+      if (!ok) {
+        ::exit(EXIT_FAILURE);
+      }
     }
   }
 
-  // link
-  auto outfile = std::filesystem::path(args.at("workdir")) / std::filesystem::path(args.at("target"));
-  if ((!std::filesystem::exists(outfile) || !newUnits.empty()) && args["wol"] != "1") {
-    std::string ldCmd =
-      Join({args["ld"], args["ldflags"], "-o", outfile.string(), allObjects});
-    if (verbose) {
-      std::cout << "- Link - " << ldCmd << std::endl;
+  // link object files
+  if ((!std::filesystem::exists(target) || !new_files.empty()) && args.at("wol") != "1") {
+    std::string command =
+      JoinStrings({args.at("ld"), args.at("ldflags"), "-o", target.string(), all_objects});
+    if (is_verbose) {
+      std::cout << "- Link - " << command << std::endl;
     } else {
-      std::cout << "- Link - " << outfile.string() << std::endl;
+      std::cout << "- Link - " << target.string() << std::endl;
     }
-    if (::system(ldCmd.c_str()) != 0) {
+    if (::system(command.c_str()) != 0) {
       std::cerr << "FATAL: failed to link!" << std::endl;
-      std::cerr << "    file:   " << allObjects << std::endl;
-      std::cerr << "    ld:     " << args["ld"] << std::endl;
-      std::cerr << "    ldflags: " << args["ldflags"] << std::endl;
+      std::cerr << "    file:   " << all_objects << std::endl;
+      std::cerr << "    ld:     " << args.at("ld") << std::endl;
+      std::cerr << "    ldflags: " << args.at("ldflags") << std::endl;
       ::exit(EXIT_FAILURE);
     }
   }
