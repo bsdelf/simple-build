@@ -16,12 +16,10 @@ class Executor {
     Stop();
   }
 
-  void Start() {
-    const auto n = std::thread::hardware_concurrency();
-    Start(n);
-  }
-
-  void Start(unsigned int n) {
+  void Start(unsigned int n = 0) {
+    if (n == 0) {
+      n = std::thread::hardware_concurrency();
+    }
     for (auto i = 0u; i < n; ++i) {
       threads_.emplace_back([this]() {
         while (true) {

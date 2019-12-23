@@ -17,9 +17,6 @@
 using namespace ccbb;
 
 int main(int argc, char* argv[]) {
-  Executor executor;
-  executor.Start();
-
   std::vector<std::string> input_paths;
 
   ArgumentParser parser;
@@ -106,6 +103,9 @@ int main(int argc, char* argv[]) {
   const auto is_verbose = args.at("verbose") == "1";
   const auto without_link = args.at("wol") == "1";
   const auto target = std::filesystem::path(args.at("workdir")) / std::filesystem::path(args.at("target"));
+
+  Executor executor;
+  executor.Start(std::stoul(args.at("jobs")));
 
   // show help
   if (args.at("help") == "1") {
