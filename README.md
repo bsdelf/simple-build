@@ -1,9 +1,11 @@
 # Build
+
 ```
-git clone https://github.com/bsdelf/eb.git
-cd eb
+git clone https://github.com/bsdelf/sb.git
+cd sb
 ./bootstrap.sh
 ```
 
 # Usage
-`./work/eb help`
+
+`./work/sb help`
