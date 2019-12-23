@@ -1,9 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #include <algorithm>
 #include <atomic>
-#include <cstring>
+#include <cstdlib>
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
@@ -16,7 +13,6 @@
 #include "SourceAnalyzer.h"
 #include "Utils.h"
 
-#include "BlockingQueue.h"
 #include "Semaphore.h"
 using namespace ccbb;
 
@@ -101,13 +97,14 @@ int main(int argc, char* argv[]) {
           std::cerr << "=" << *value;
         }
         std::cerr << std::endl;
-        ::exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
       }
     })
     .Parse(argc, argv);
 
   auto args = parser.Data();
   const auto is_verbose = args.at("verbose") == "1";
+  const auto without_link = args.at("wol") == "1";
   const auto target = std::filesystem::path(args.at("workdir")) / std::filesystem::path(args.at("target"));
 
   // show help
@@ -119,7 +116,7 @@ int main(int argc, char* argv[]) {
       << std::endl
       << parser.FormatHelp(ArgumentParser::FormatHelpOptions{.space_before_key = n})
       << std::endl;
-    ::exit(EXIT_SUCCESS);
+    std::exit(EXIT_SUCCESS);
   }
 
   // ensure working directory
@@ -131,7 +128,7 @@ int main(int argc, char* argv[]) {
       const auto ok = std::filesystem::create_directories(dir, err);
       if (!ok) {
         std::cerr << "(E) failed to create working directory: " << err.message() << std::endl;
-        ::exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
       }
       const auto perms =
         std::filesystem::perms::owner_all |
@@ -140,16 +137,16 @@ int main(int argc, char* argv[]) {
     } else {
       if (status.type() != std::filesystem::file_type::directory) {
         std::cerr << "(E) working directory has been occupied" << std::endl;
-        ::exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
       }
       if ((status.permissions() & std::filesystem::perms::owner_all) == std::filesystem::perms::none) {
         std::cerr << "(E) working directory permission denied" << std::endl;
-        ::exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
       }
     }
   }
 
-  // gather files
+  // gather source files
   if (input_paths.empty()) {
     input_paths.push_back(".");
   }
@@ -170,7 +167,7 @@ int main(int argc, char* argv[]) {
         });
     } else {
       std::cerr << "(E) invalid path: " << path << std::endl;
-      ::exit(EXIT_FAILURE);
+      std::exit(EXIT_FAILURE);
     }
   }
   std::sort(source_paths.begin(), source_paths.end(), [](const auto& a, const auto& b) {
@@ -178,29 +175,28 @@ int main(int argc, char* argv[]) {
   });
   if (source_paths.empty()) {
     std::cout << "(W) no souce files" << std::endl;
-    ::exit(EXIT_SUCCESS);
+    std::exit(EXIT_SUCCESS);
   }
 
-  // identify source files
+  // analyze source files
   std::vector<SourceFile> new_files;
   std::string all_objects;
   {
     std::mutex mutex;
     Semaphore semaphore;
     SourceAnalyzer analyzer(args);
-    BlockingQueue<SourceFile> mailbox;
     for (size_t i = 0; i < source_paths.size(); ++i) {
       executor.Push([&, i = i]() {
-        auto unit = analyzer.Process(source_paths[i]);
-        if (unit) {
+        auto file = analyzer.Process(source_paths[i]);
+        if (file) {
           std::lock_guard<std::mutex> locker(mutex);
           if (all_objects.empty()) {
-            all_objects = unit.output;
+            all_objects = file.output;
           } else {
-            all_objects += " " + unit.output;
+            all_objects += " " + file.output;
           }
-          if (!unit.command.empty()) {
-            new_files.push_back(std::move(unit));
+          if (!file.command.empty()) {
+            new_files.push_back(std::move(file));
           }
         }
         semaphore.Post();
@@ -213,8 +209,8 @@ int main(int argc, char* argv[]) {
   if (args.at("clean") == "1") {
     const std::string& cmd = "rm -f " + target.string() + ' ' + all_objects;
     std::cout << cmd << std::endl;
-    ::system(cmd.c_str());
-    ::exit(EXIT_SUCCESS);
+    std::system(cmd.c_str());
+    std::exit(EXIT_SUCCESS);
   }
 
   // compile source files
@@ -229,7 +225,8 @@ int main(int argc, char* argv[]) {
     }
     std::cout << std::endl;
     {
-      int index = 0;
+      size_t index = 0;
+      const size_t total = new_files.size() + (without_link ? 0 : 1);
       std::atomic_bool ok = true;
       std::mutex mutex;
       Semaphore semaphore;
@@ -239,38 +236,44 @@ int main(int argc, char* argv[]) {
             const auto& file = new_files[i];
             {
               std::lock_guard<std::mutex> locker(mutex);
-              const int percent = static_cast<double>(++index) / new_files.size() * 100;
-              std::cout << "[ " << std::setfill(' ') << std::setw(3) << percent << "% ] " << file.Note(is_verbose) << std::endl;
+              const int percent = ++index * 100 / total;
+              std::cout << "[ " << std::setfill(' ') << std::setw(3) << percent << "% ] ";
+              if (is_verbose) {
+                std::cout << file.command;
+              } else {
+                std::cout << (file.source + " => " + file.output);
+              }
+              std::cout << std::endl;
             }
-            ok = ::system(file.command.c_str()) == 0;
+            ok = std::system(file.command.c_str()) == 0;
           }
           semaphore.Post();
         });
       }
       semaphore.Wait(new_files.size());
       if (!ok) {
-        ::exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
       }
     }
   }
 
   // link object files
-  if ((!std::filesystem::exists(target) || !new_files.empty()) && args.at("wol") != "1") {
+  if (!without_link && (!new_files.empty() || !std::filesystem::exists(target))) {
     std::string command =
       JoinStrings({args.at("ld"), args.at("ldflags"), "-o", target.string(), all_objects});
     if (is_verbose) {
-      std::cout << "- Link - " << command << std::endl;
+      std::cout << "[ 100% ] " << command << std::endl;
     } else {
-      std::cout << "- Link - " << target.string() << std::endl;
+      std::cout << "[ 100% ] " << target.string() << std::endl;
     }
-    if (::system(command.c_str()) != 0) {
+    if (std::system(command.c_str()) != 0) {
       std::cerr << "FATAL: failed to link!" << std::endl;
       std::cerr << "    file:   " << all_objects << std::endl;
       std::cerr << "    ld:     " << args.at("ld") << std::endl;
       std::cerr << "    ldflags: " << args.at("ldflags") << std::endl;
-      ::exit(EXIT_FAILURE);
+      std::exit(EXIT_FAILURE);
     }
   }
 
-  ::exit(EXIT_SUCCESS);
+  std::exit(EXIT_SUCCESS);
 }

@@ -13,10 +13,6 @@ struct SourceFile {
   explicit operator bool() const {
     return !source.empty() || !output.empty();
   }
-
-  std::string Note(bool verbose) const {
-    return verbose ? command : (source + " => " + output);
-  }
 };
 
 class SourceAnalyzer {
@@ -30,9 +26,9 @@ class SourceAnalyzer {
         handlers_.emplace(extensions[i], handler);
       }
     };
-    install(&SourceAnalyzer::ProcessC, (const char*[]){".c", nullptr});
-    install(&SourceAnalyzer::ProcessCpp, (const char*[]){".cc", ".cpp", ".cxx", nullptr});
-    install(&SourceAnalyzer::ProcessAsm, (const char*[]){".s", ".asm", ".nas", nullptr});
+    install(&SourceAnalyzer::ProcessC, (const char* []){".c", nullptr});
+    install(&SourceAnalyzer::ProcessCpp, (const char* []){".cc", ".cpp", ".cxx", "c++", nullptr});
+    install(&SourceAnalyzer::ProcessAsm, (const char* []){".s", ".asm", ".nas", nullptr});
   }
 
   SourceFile Process(const std::string& path) const;
