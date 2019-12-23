@@ -1,8 +1,7 @@
 #include "MakeParser.h"
 
 ArgumentParser MakeParser() {
-  ArgumentParser parser;
-  parser
+  return ArgumentParser()
     .On("clean", "clean files", ArgumentParser::Set("0", "1"))
     .On("jobs", "set number of jobs", ArgumentParser::Set("0", "0"))
     .On("target", "set target name", ArgumentParser::Set("a.out", "a.out"))
@@ -65,5 +64,4 @@ ArgumentParser MakeParser() {
     .On("c++20", "enable -std=c++20", ArgumentParser::JoinTo("cxxflags", {}, "-std=c++20"))
     .Split()
     .On("help", "show help", ArgumentParser::Set("0", "1"));
-  return parser;
 }
