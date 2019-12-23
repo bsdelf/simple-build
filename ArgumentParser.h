@@ -349,8 +349,8 @@ class ArgumentParser {
   }
 
   struct FormatHelpOptions {
-    int space_before_key = 0;
-    int min_space_before_value = 4;
+    size_t space_before_key = 0;
+    size_t min_space_before_value = 4;
     std::string newline = "\n";
   };
 
