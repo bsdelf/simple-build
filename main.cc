@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  // gather potential source files
+  // gather files
   if (input_paths.empty()) {
     input_paths.push_back(".");
   }
@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
     ::exit(EXIT_SUCCESS);
   }
 
-  // identify translation units
+  // identify source files
   std::vector<SourceFile> new_files;
   std::string all_objects;
   {
