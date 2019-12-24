@@ -16,10 +16,10 @@ class ArgumentParser {
   Result Parse(int argc, char** argv, const std::string& separator = "=") const {
     Result result{initial_key_values_, {}};
     for (int i = 0; i < argc; ++i) {
-      if (!argv[i]) {
+      std::string arg(argv[i]);
+      if (arg.empty()) {
         continue;
       }
-      std::string arg(argv[i]);
       std::string key;
       std::optional<std::string> value;
       if (auto pos = arg.find(separator); pos != std::string::npos) {
