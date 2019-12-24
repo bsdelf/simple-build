@@ -52,7 +52,11 @@ ArgumentParser MakeParser() {
     .On("shared", "enable -fPIC -shared",
         ArgumentParser::JoinTo("cflags", {}, "-fPIC"),
         ArgumentParser::JoinTo("cxxflags", {}, "-fPIC"),
+#ifdef __APPLE__
+        ArgumentParser::JoinTo("ldflags", {}, "-dynamiclib"))
+#else
         ArgumentParser::JoinTo("ldflags", {}, "-shared"))
+#endif
     .On("lto", "enable -flto", ArgumentParser::JoinTo("ldflags", {}, "-flto"))
     .On("c89", "enable -std=c89", ArgumentParser::JoinTo("cflags", {}, "-std=c89"))
     .On("c99", "enable -std=c99", ArgumentParser::JoinTo("cflags", {}, "-std=c99"))
