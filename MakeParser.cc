@@ -16,7 +16,6 @@ ArgumentParser MakeParser() {
     .On("cxxflags", "add c++ compiler flags", ArgumentParser::Join("", {}))
     .On("ld", "set linker", ArgumentParser::Set("cc", "cc"))
     .On("ldflags", "add linker flags", ArgumentParser::Join("", {}))
-    .On("ldorder", "set linkage order", ArgumentParser::Set("", {}))
     .On("prefix", "add search directories",
         ArgumentParser::JoinTo(
           "cflags", {}, {},
