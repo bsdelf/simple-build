@@ -55,7 +55,7 @@ SourceFile SourceAnalyzer::ProcessC(const std::string& source) const {
   auto output = BuildOutputPath(args_.at("workdir"), source);
   std::string command;
   if (ShouldCompile(output, depfiles)) {
-    command = compiler + " " + flags + " -o " + output + " -c " + source;
+    command = JoinStrings({compiler, flags, "-o", output, "-c", source});
   }
   return {source, std::move(output), depfiles, std::move(command)};
 }
@@ -67,7 +67,7 @@ SourceFile SourceAnalyzer::ProcessCpp(const std::string& source) const {
   auto output = BuildOutputPath(args_.at("workdir"), source);
   std::string command;
   if (ShouldCompile(output, depfiles)) {
-    command = compiler + " " + flags + " -o " + output + " -c " + source;
+    command = JoinStrings({compiler, flags, "-o", output, "-c", source});
   }
   args_.at("ld") = compiler;
   return {source, std::move(output), depfiles, std::move(command)};
@@ -79,7 +79,7 @@ SourceFile SourceAnalyzer::ProcessAsm(const std::string& source) const {
   if (ShouldCompile(output, {source})) {
     const auto& compiler = args_.at("as");
     const auto& flags = args_.at("asflags");
-    command = compiler + " " + flags + " -o " + output + " " + source;
+    command = JoinStrings({compiler, flags, "-o", output, source});
   }
   return {source, std::move(output), {source}, std::move(command)};
 }
