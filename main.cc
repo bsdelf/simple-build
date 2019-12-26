@@ -147,12 +147,12 @@ int main(int argc, char* argv[]) {
     {
       size_t current = 0;
       const size_t total = new_files.size() + (without_link ? 0 : 1);
-      std::atomic_bool ok = true;
+      std::atomic_size_t failed = 0;
       std::mutex mutex;
       Semaphore semaphore;
       for (size_t i = 0; i < new_files.size(); ++i) {
         executor.Push([&, i = i]() {
-          if (ok) {
+          if (failed == 0) {
             const auto& file = new_files[i];
             {
               std::lock_guard<std::mutex> locker(mutex);
@@ -165,13 +165,16 @@ int main(int argc, char* argv[]) {
               }
               std::cout << std::endl;
             }
-            ok = std::system(file.command.c_str()) == 0;
+            const auto ok = std::system(file.command.c_str()) == 0;
+            if (!ok) {
+              ++failed;
+            }
           }
           semaphore.Post();
         });
       }
       semaphore.Wait(new_files.size());
-      if (!ok) {
+      if (failed > 0) {
         std::exit(EXIT_FAILURE);
       }
     }
