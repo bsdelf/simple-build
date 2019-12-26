@@ -145,8 +145,8 @@ int main(int argc, char* argv[]) {
     }
     std::cout << std::endl;
     {
-      size_t current = 0;
       const size_t total = new_files.size() + (without_link ? 0 : 1);
+      size_t current = 0;
       std::atomic_size_t failed = 0;
       std::mutex mutex;
       Semaphore semaphore;
@@ -156,8 +156,8 @@ int main(int argc, char* argv[]) {
             const auto& file = new_files[i];
             {
               std::lock_guard<std::mutex> locker(mutex);
-              const int percent = ++current * 100 / total;
-              std::cout << "[ " << std::setfill(' ') << std::setw(3) << percent << "% ] ";
+              const auto percentage = ++current * 100 / total;
+              std::cout << "[ " << std::setfill(' ') << std::setw(3) << percentage << "% ] ";
               if (verbose) {
                 std::cout << file.command;
               } else {
