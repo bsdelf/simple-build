@@ -6,7 +6,7 @@ ArgumentParser MakeParser() {
     .On("jobs", "set number of jobs", ArgumentParser::Set("0", "0"))
     .On("target", "set target name", ArgumentParser::Set("a.out", "a.out"))
     .On("workdir", "set working directory", ArgumentParser::Set(".", "."))
-    .On("verbose", "enable verbose output", ArgumentParser::Set("0", "1"))
+    .On("verbose", "set verbose level", ArgumentParser::Set("0", "1"))
     .Split()
     .On("as", "set assembler", ArgumentParser::Set("as", "as"))
     .On("asflags", "add assembler flags", ArgumentParser::Join("", {}))
