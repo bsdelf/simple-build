@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
         return acc;
       });
     const auto& text = verbose ? JoinStrings(paths) : (std::to_string(new_files.size()) + " file(s)");
-    std::cout << "* Build: " << text << std::endl;
+    std::cout << "Build " << text << std::endl;
     {
       const size_t total = new_files.size() + (without_link ? 0 : 1);
       size_t current = 0;
