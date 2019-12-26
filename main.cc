@@ -131,11 +131,11 @@ int main(int argc, char* argv[]) {
 
   // compile source files
   if (!new_files.empty()) {
-    const auto& paths = std::reduce(
+    const auto& paths = std::accumulate(
       new_files.begin(),
       new_files.end(),
       std::vector<std::string>(),
-      [](auto& acc, const auto& val) {
+      [](auto acc, const auto& val) {
         acc.push_back(val.source);
         return acc;
       });
