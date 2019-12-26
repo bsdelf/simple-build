@@ -7,23 +7,6 @@
 #include <string>
 #include <vector>
 
-std::string JoinStrings(std::initializer_list<std::string> strs, const std::string& separator) {
-  auto iter = strs.begin();
-  if (iter == strs.end()) {
-    return "";
-  }
-  std::string result = *iter++;
-  for (; iter != strs.end(); ++iter) {
-    if (!iter->empty()) {
-      if (!result.empty()) {
-        result += separator;
-      }
-      result += *iter;
-    }
-  }
-  return result;
-}
-
 std::vector<std::string> RegexSplit(const std::string& str, const std::string& pattern) {
   std::regex re{pattern};
   std::sregex_token_iterator

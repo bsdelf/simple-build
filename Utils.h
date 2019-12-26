@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <filesystem>
 #include <initializer_list>
 #include <string>
+#include <utility>
 #include <vector>
 
 inline auto ToLower(std::string str) {
@@ -12,7 +14,39 @@ inline auto ToLower(std::string str) {
   return str;
 }
 
-std::string JoinStrings(std::initializer_list<std::string> strs, const std::string& separator = " ");
+template <class T>
+void SortStrings(T&& strs) {
+  std::sort(strs.begin(), strs.end(), [](const auto& a, const auto& b) {
+    return std::strcoll(a.c_str(), b.c_str()) < 0;
+  });
+}
+
+template <class T>
+std::string JoinStringsImpl(T&& strs, const std::string& separator) {
+  auto iter = strs.begin();
+  if (iter == strs.end()) {
+    return "";
+  }
+  std::string result = *iter++;
+  for (; iter != strs.end(); ++iter) {
+    if (!iter->empty()) {
+      if (!result.empty()) {
+        result += separator;
+      }
+      result += *iter;
+    }
+  }
+  return result;
+}
+
+inline std::string JoinStrings(std::initializer_list<std::string> strs, const std::string& separator = " ") {
+  return JoinStringsImpl(std::move(strs), separator);
+}
+
+template <class T>
+std::string JoinStrings(T&& strs, const std::string& separator = " ") {
+  return JoinStringsImpl(std::forward<T>(strs), separator);
+}
 
 std::vector<std::string> RegexSplit(const std::string& str, const std::string& pattern);
 

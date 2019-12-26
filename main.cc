@@ -1,9 +1,9 @@
-#include <algorithm>
 #include <atomic>
 #include <cstdlib>
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <utility>
 #include <vector>
@@ -87,9 +87,7 @@ int main(int argc, char* argv[]) {
       std::exit(EXIT_FAILURE);
     }
   }
-  std::sort(source_paths.begin(), source_paths.end(), [](const auto& a, const auto& b) {
-    return std::strcoll(a.c_str(), b.c_str()) < 0 ? true : false;
-  });
+  SortStrings(source_paths);
   if (source_paths.empty()) {
     std::cout << "(W) no souce files" << std::endl;
     std::exit(EXIT_SUCCESS);
@@ -100,7 +98,7 @@ int main(int argc, char* argv[]) {
 
   // analyze source files
   std::vector<SourceFile> new_files;
-  std::string all_objects;
+  std::vector<std::string> all_outputs;
   {
     std::mutex mutex;
     Semaphore semaphore;
@@ -110,11 +108,7 @@ int main(int argc, char* argv[]) {
         auto file = analyzer.Process(source_paths[i]);
         if (file) {
           std::lock_guard<std::mutex> locker(mutex);
-          if (all_objects.empty()) {
-            all_objects = file.output;
-          } else {
-            all_objects += " " + file.output;
-          }
+          all_outputs.push_back(file.output);
           if (!file.command.empty()) {
             new_files.push_back(std::move(file));
           }
@@ -123,27 +117,30 @@ int main(int argc, char* argv[]) {
       });
     }
     semaphore.Wait(source_paths.size());
+    SortStrings(all_outputs);
   }
 
   // clean object and and target files
   if (args.at("clean") == "1") {
-    const std::string& cmd = "rm -f " + target.string() + ' ' + all_objects;
-    std::cout << cmd << std::endl;
-    std::system(cmd.c_str());
+    const auto& objects = JoinStrings(all_outputs);
+    const auto& command = "rm -f " + target.string() + ' ' + objects;
+    std::cout << command << std::endl;
+    std::system(command.c_str());
     std::exit(EXIT_SUCCESS);
   }
 
   // compile source files
   if (!new_files.empty()) {
-    std::cout << "* Build: ";
-    if (verbose) {
-      for (size_t i = 0; i < new_files.size(); ++i) {
-        std::cout << new_files[i].source << ((i + 1 < new_files.size()) ? ", " : "");
-      }
-    } else {
-      std::cout << new_files.size() << (new_files.size() > 1 ? " files" : " file");
-    }
-    std::cout << std::endl;
+    const auto& paths = std::reduce(
+      new_files.begin(),
+      new_files.end(),
+      std::vector<std::string>(),
+      [](auto& acc, const auto& val) {
+        acc.push_back(val.source);
+        return acc;
+      });
+    const auto& text = verbose ? JoinStrings(paths) : (std::to_string(new_files.size()) + " file(s)");
+    std::cout << "* Build: " << text << std::endl;
     {
       const size_t total = new_files.size() + (without_link ? 0 : 1);
       size_t current = 0;
@@ -157,13 +154,8 @@ int main(int argc, char* argv[]) {
             {
               std::lock_guard<std::mutex> locker(mutex);
               const auto percentage = ++current * 100 / total;
-              std::cout << "[ " << std::setfill(' ') << std::setw(3) << percentage << "% ] ";
-              if (verbose) {
-                std::cout << file.command;
-              } else {
-                std::cout << (file.source + " => " + file.output);
-              }
-              std::cout << std::endl;
+              const auto& text = verbose ? file.command : (file.source + " => " + file.output);
+              std::cout << "[ " << std::setfill(' ') << std::setw(3) << percentage << "% ] " << text << std::endl;
             }
             const auto ok = std::system(file.command.c_str()) == 0;
             if (!ok) {
@@ -182,18 +174,13 @@ int main(int argc, char* argv[]) {
 
   // link object files
   if (!without_link && (!new_files.empty() || !std::filesystem::exists(target))) {
-    std::string command =
-      JoinStrings({args.at("ld"), args.at("ldflags"), "-o", target.string(), all_objects});
-    if (verbose) {
-      std::cout << "[ 100% ] " << command << std::endl;
-    } else {
-      std::cout << "[ 100% ] " << target.string() << std::endl;
-    }
+    const auto& objects = JoinStrings(all_outputs);
+    const auto& command =
+      JoinStrings({args.at("ld"), args.at("ldflags"), "-o", target.string(), objects});
+    const auto& text = verbose ? command : target.string();
+    std::cout << "[ 100% ] " << text << std::endl;
     if (std::system(command.c_str()) != 0) {
-      std::cerr << "FATAL: failed to link!" << std::endl;
-      std::cerr << "    file:   " << all_objects << std::endl;
-      std::cerr << "    ld:     " << args.at("ld") << std::endl;
-      std::cerr << "    ldflags: " << args.at("ldflags") << std::endl;
+      std::cerr << "(E) failed to link" << std::endl;
       std::exit(EXIT_FAILURE);
     }
   }
