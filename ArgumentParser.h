@@ -4,6 +4,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class ArgumentParser {
@@ -16,7 +17,7 @@ class ArgumentParser {
   Result Parse(int argc, char** argv, const std::string& separator = "=") const {
     Result result{initial_key_values_, {}};
     for (int i = 0; i < argc; ++i) {
-      std::string arg(argv[i]);
+      std::string_view arg(argv[i]);
       if (arg.empty()) {
         continue;
       }
@@ -30,11 +31,11 @@ class ArgumentParser {
       }
       auto iter = key_value_handlers_.find(key);
       if (iter == key_value_handlers_.end()) {
-        result.rests.push_back(std::move(arg));
+        result.rests.emplace_back(arg);
       } else {
         const auto& handlers = iter->second;
-        for (size_t i = 0; i < handlers.size(); ++i) {
-          handlers[i](result.args, value);
+        for (const auto& handler : handlers) {
+          handler(result.args, value);
         }
       }
     }
