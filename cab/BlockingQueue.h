@@ -5,7 +5,7 @@
 #include <memory>
 #include <mutex>
 
-namespace ccbb {
+namespace cab {
 
 template <typename T>
 class BlockingQueue {
@@ -93,4 +93,4 @@ class BlockingQueue {
   std::condition_variable condition_;
   std::deque<T> queue_;
 };
-}  // namespace ccbb
+}  // namespace cab

@@ -7,6 +7,8 @@
 #include <string_view>
 #include <vector>
 
+namespace cab {
+
 class ArgumentParser {
  public:
   struct Result {
@@ -14,7 +16,7 @@ class ArgumentParser {
     std::vector<std::string> rests;
   };
 
-  Result Parse(int argc, char** argv, const std::string& separator = "=") const {
+  auto Parse(int argc, char** argv, std::string_view separator = "=") const -> Result {
     Result result{initial_key_values_, {}};
     for (int i = 0; i < argc; ++i) {
       std::string_view arg(argv[i]);
@@ -46,21 +48,30 @@ class ArgumentParser {
     std::optional<std::string> initial_value;
     std::optional<std::string> default_value;
     std::function<void(std::string&)> modifier;
-    Set(std::optional<std::string> initial_value, std::optional<std::string> default_value)
-      : initial_value(std::move(initial_value)), default_value(std::move(default_value)) {
+    Set(std::optional<std::string> initial_value,
+        std::optional<std::string> default_value)
+      : initial_value(std::move(initial_value)),
+        default_value(std::move(default_value)) {
     }
-    Set(std::optional<std::string> initial_value, std::optional<std::string> default_value, std::function<void(std::string&)> modifier)
-      : initial_value(std::move(initial_value)), default_value(std::move(default_value)), modifier(std::move(modifier)) {
+    Set(std::optional<std::string> initial_value,
+        std::optional<std::string> default_value,
+        std::function<void(std::string&)> modifier)
+      : initial_value(std::move(initial_value)),
+        default_value(std::move(default_value)),
+        modifier(std::move(modifier)) {
     }
   };
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const std::string& help, const Set& set, const T&... rest) {
+  auto On(const std::string& key,
+          const std::string& help,
+          const Set& set,
+          const T&... rest) -> ArgumentParser& {
     key_helps_.emplace_back(key, help);
     return On(key, set, rest...);
   }
 
-  ArgumentParser& On(const std::string& key, const Set& set) {
+  auto On(const std::string& key, const Set& set) -> ArgumentParser& {
     if (set.initial_value) {
       auto value = *set.initial_value;
       if (set.modifier) {
@@ -87,7 +98,7 @@ class ArgumentParser {
   }
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const Set& set, const T&... rest) {
+  auto On(const std::string& key, const Set& set, const T&... rest) -> ArgumentParser& {
     return On(key, set).On(key, rest...);
   }
 
@@ -96,26 +107,34 @@ class ArgumentParser {
     std::optional<std::string> initial_value;
     std::optional<std::string> default_value;
     std::function<void(std::string&)> modifier;
-    SetTo(const std::string& key,
+    SetTo(std::string key,
           std::optional<std::string> initial_value,
           std::optional<std::string> default_value)
-      : key(key), initial_value(std::move(initial_value)), default_value(std::move(default_value)) {
+      : key(std::move(key)),
+        initial_value(std::move(initial_value)),
+        default_value(std::move(default_value)) {
     }
-    SetTo(const std::string& key,
+    SetTo(std::string key,
           std::optional<std::string> initial_value,
           std::optional<std::string> default_value,
           std::function<void(std::string&)> modifier)
-      : key(key), initial_value(std::move(initial_value)), default_value(std::move(default_value)), modifier(std::move(modifier)) {
+      : key(std::move(key)),
+        initial_value(std::move(initial_value)),
+        default_value(std::move(default_value)),
+        modifier(std::move(modifier)) {
     }
   };
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const std::string& help, const SetTo& set_to, const T&... rest) {
+  auto On(const std::string& key,
+          const std::string& help,
+          const SetTo& set_to,
+          const T&... rest) -> ArgumentParser& {
     key_helps_.emplace_back(key, help);
     return On(key, set_to, rest...);
   }
 
-  ArgumentParser& On(const std::string& key, const SetTo& set_to) {
+  auto On(const std::string& key, const SetTo& set_to) -> ArgumentParser& {
     if (set_to.initial_value) {
       auto value = *set_to.initial_value;
       if (set_to.modifier) {
@@ -142,7 +161,7 @@ class ArgumentParser {
   }
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const SetTo& set_to, const T&... rest) {
+  auto On(const std::string& key, const SetTo& set_to, const T&... rest) -> ArgumentParser& {
     return On(key, set_to).On(key, rest...);
   }
 
@@ -158,10 +177,10 @@ class ArgumentParser {
     }
     Join(std::optional<std::string> initial_value,
          std::optional<std::string> default_value,
-         const std::string& separator)
+         std::string separator)
       : initial_value(std::move(initial_value)),
         default_value(std::move(default_value)),
-        separator(separator) {
+        separator(std::move(separator)) {
     }
     Join(std::optional<std::string> initial_value,
          std::optional<std::string> default_value,
@@ -172,22 +191,25 @@ class ArgumentParser {
     }
     Join(std::optional<std::string> initial_value,
          std::optional<std::string> default_value,
-         const std::string& separator,
+         std::string separator,
          std::function<void(std::string&)> modifier)
       : initial_value(std::move(initial_value)),
         default_value(std::move(default_value)),
-        separator(separator),
+        separator(std::move(separator)),
         modifier(std::move(modifier)) {
     }
   };
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const std::string& help, const Join& join, const T&... rest) {
+  auto On(const std::string& key,
+          const std::string& help,
+          const Join& join,
+          const T&... rest) -> ArgumentParser& {
     key_helps_.emplace_back(key, help);
     return On(key, join, rest...);
   }
 
-  ArgumentParser& On(const std::string& key, const Join& join) {
+  auto On(const std::string& key, const Join& join) -> ArgumentParser& {
     if (join.initial_value) {
       auto value = *join.initial_value;
       if (join.modifier) {
@@ -229,7 +251,7 @@ class ArgumentParser {
   }
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const Join& join, const T&... rest) {
+  auto On(const std::string& key, const Join& join, const T&... rest) -> ArgumentParser& {
     return On(key, join).On(key, rest...);
   }
 
@@ -239,51 +261,55 @@ class ArgumentParser {
     std::optional<std::string> default_value;
     std::string separator = " ";
     std::function<void(std::string&)> modifier;
-    JoinTo(const std::string& key,
+    JoinTo(std::string key,
            std::optional<std::string> initial_value,
            std::optional<std::string> default_value)
-      : key(key),
+      : key(std::move(key)),
         initial_value(std::move(initial_value)),
         default_value(std::move(default_value)) {
     }
-    JoinTo(const std::string& key,
+    JoinTo(std::string key,
            std::optional<std::string> initial_value,
            std::optional<std::string> default_value,
            std::function<void(std::string&)> modifier)
-      : key(key),
+      : key(std::move(key)),
         initial_value(std::move(initial_value)),
         default_value(std::move(default_value)),
         modifier(std::move(modifier)) {
     }
-    JoinTo(const std::string& key,
+    JoinTo(std::string key,
            std::optional<std::string> initial_value,
            std::optional<std::string> default_value,
-           const std::string& separator)
-      : key(key),
+           std::string separator)
+      : key(std::move(key)),
         initial_value(std::move(initial_value)),
         default_value(std::move(default_value)),
-        separator(separator) {
+        separator(std::move(separator)) {
     }
-    JoinTo(const std::string& key,
+    JoinTo(std::string key,
            std::optional<std::string> initial_value,
            std::optional<std::string> default_value,
-           const std::string& separator,
+           std::string separator,
            std::function<void(std::string&)> modifier)
-      : key(key),
+      : key(std::move(key)),
         initial_value(std::move(initial_value)),
         default_value(std::move(default_value)),
-        separator(separator),
+        separator(std::move(separator)),
         modifier(std::move(modifier)) {
     }
   };
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const std::string& help, const JoinTo& join_to, const T&... rest) {
+  auto On(
+    const std::string& key,
+    const std::string& help,
+    const JoinTo& join_to,
+    const T&... rest) -> ArgumentParser& {
     key_helps_.emplace_back(key, help);
     return On(key, join_to, rest...);
   }
 
-  ArgumentParser& On(const std::string& key, const JoinTo& join_to) {
+  auto On(const std::string& key, const JoinTo& join_to) -> ArgumentParser& {
     if (join_to.initial_value) {
       auto value = *join_to.initial_value;
       if (join_to.modifier) {
@@ -316,19 +342,20 @@ class ArgumentParser {
             data.emplace(to_key, std::move(value));
           } else if (iter->second.empty()) {
             iter->second = std::move(value);
-          } else
+          } else {
             iter->second += separator + value;
+          }
         }
       });
     return AddValueHandler(key, std::move(handler));
   }
 
   template <class... T>
-  ArgumentParser& On(const std::string& key, const JoinTo& join_to, const T&... rest) {
+  auto On(const std::string& key, const JoinTo& join_to, const T&... rest) -> ArgumentParser& {
     return On(key, join_to).On(key, rest...);
   }
 
-  ArgumentParser& Split() {
+  auto Split() -> ArgumentParser& {
     key_helps_.emplace_back();
     return *this;
   }
@@ -345,7 +372,7 @@ class ArgumentParser {
     std::string newline = "\n";
   };
 
-  std::string FormatHelp(const FormatHelpOptions& options) const {
+  [[nodiscard]] auto FormatHelp(const FormatHelpOptions& options) const -> std::string {
     std::string result;
     size_t max = 0;
     for (const auto& item : key_helps_) {
@@ -367,9 +394,10 @@ class ArgumentParser {
   }
 
  private:
-  using ValueHandler = std::function<void(std::map<std::string, std::string>&, std::optional<std::string>)>;
+  using ValueHandler =
+    std::function<void(std::map<std::string, std::string>&, std::optional<std::string>)>;
 
-  ArgumentParser& AddValueHandler(const std::string& key, ValueHandler&& handler) {
+  auto AddValueHandler(const std::string& key, ValueHandler&& handler) -> ArgumentParser& {
     auto iter = key_value_handlers_.find(key);
     if (iter == key_value_handlers_.end()) {
       key_value_handlers_.emplace(key, std::vector<ValueHandler>{std::move(handler)});
@@ -384,11 +412,13 @@ class ArgumentParser {
     std::string key;
     std::string help;
     KeyHelp() = default;
-    KeyHelp(const std::string& key, const std::string& help)
-      : key(key), help(help) {
+    KeyHelp(std::string key, std::string help)
+      : key(std::move(key)), help(std::move(help)) {
     }
   };
   std::vector<KeyHelp> key_helps_;
   std::map<std::string, std::vector<ValueHandler>> key_value_handlers_;
   std::map<std::string, std::string> initial_key_values_;
 };
+
+}  // namespace cab

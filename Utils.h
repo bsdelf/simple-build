@@ -22,7 +22,7 @@ void SortStrings(T&& strs) {
 }
 
 template <class T>
-std::string JoinStringsImpl(T&& strs, const std::string& separator) {
+auto JoinStringsImpl(T&& strs, const std::string& separator) -> std::string {
   std::string result;
   for (const auto& str : strs) {
     if (!str.empty()) {
@@ -35,20 +35,22 @@ std::string JoinStringsImpl(T&& strs, const std::string& separator) {
   return result;
 }
 
-inline std::string JoinStrings(std::initializer_list<std::string_view> strs, const std::string& separator = " ") {
+inline auto JoinStrings(
+  std::initializer_list<std::string_view> strs,
+  const std::string& separator = " ") -> std::string {
   return JoinStringsImpl(strs, separator);
 }
 
 template <class T>
-std::string JoinStrings(T&& strs, const std::string& separator = " ") {
+auto JoinStrings(T&& strs, const std::string& separator = " ") -> std::string {
   return JoinStringsImpl(std::forward<T>(strs), separator);
 }
 
-std::vector<std::string> RegexSplit(const std::string& str, const std::string& pattern);
+auto RegexSplit(const std::string& str, const std::string& pattern) -> std::vector<std::string>;
 
-std::string RunCommand(const std::string& cmd);
+auto RunCommand(const std::string& cmd) -> std::string;
 
-inline bool IsNewer(const std::string& p1, const std::string& p2) {
+inline auto IsNewer(const std::string& p1, const std::string& p2) -> bool {
   return std::filesystem::last_write_time(p1) > std::filesystem::last_write_time(p2);
 }
 

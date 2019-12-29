@@ -7,7 +7,7 @@
 #include <mutex>
 #endif
 
-namespace ccbb {
+namespace cab {
 
 class Semaphore {
  public:
@@ -101,4 +101,4 @@ class Semaphore {
   std::condition_variable condition_;
 #endif
 };
-}  // namespace ccbb
+}  // namespace cab

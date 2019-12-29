@@ -6,12 +6,19 @@
 
 #include "BlockingQueue.h"
 
+namespace cab {
+
 class Executor {
  public:
   using Job = std::function<void(void)>;
-  using JobQueue = ccbb::BlockingQueue<Job>;
 
  public:
+  Executor() = default;
+  Executor(const Executor&) = delete;
+  Executor(Executor&&) = delete;
+  auto operator=(const Executor&) -> Executor& = delete;
+  auto operator=(Executor &&) -> Executor& = delete;
+
   ~Executor() {
     Stop();
   }
@@ -41,8 +48,8 @@ class Executor {
         queue_.EmplaceBack(nullptr);
       }
     }
-    for (size_t i = 0; i < threads_.size(); ++i) {
-      threads_[i].join();
+    for (auto& thread : threads_) {
+      thread.join();
     }
     threads_.clear();
   }
@@ -57,15 +64,17 @@ class Executor {
     queue_.Clear();
   }
 
-  size_t Size() const {
+  [[nodiscard]] auto Size() const -> size_t {
     return queue_.Size();
   }
 
-  bool Empty() const {
+  [[nodiscard]] auto Empty() const -> bool {
     return queue_.Empty();
   }
 
  private:
-  JobQueue queue_;
+  BlockingQueue<Job> queue_;
   std::vector<std::thread> threads_;
 };
+
+}  // namespace cab

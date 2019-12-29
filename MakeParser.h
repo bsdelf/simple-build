@@ -1,5 +1,5 @@
 #pragma once
 
-#include "ArgumentParser.h"
+#include "cab/ArgumentParser.h"
 
-ArgumentParser MakeParser();
+auto MakeParser() -> cab::ArgumentParser;

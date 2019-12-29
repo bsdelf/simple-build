@@ -8,16 +8,15 @@
 #include <utility>
 #include <vector>
 
-#include "ArgumentParser.h"
-#include "Executor.h"
+#include "cab/ArgumentParser.h"
+#include "cab/Executor.h"
+#include "cab/Semaphore.h"
+
 #include "MakeParser.h"
 #include "SourceAnalyzer.h"
 #include "Utils.h"
 
-#include "Semaphore.h"
-using namespace ccbb;
-
-int main(int argc, char* argv[]) {
+auto main(int argc, char* argv[]) -> int {
   auto result = MakeParser().Parse(argc - 1, argv + 1);
   auto& args = result.args;
   const auto verbose = args.at("verbose") == "1";
@@ -26,7 +25,7 @@ int main(int argc, char* argv[]) {
 
   // show help
   if (args.at("help") == "1") {
-    ArgumentParser::FormatHelpOptions options{4, 4, "\n"};
+    cab::ArgumentParser::FormatHelpOptions options{4, 4, "\n"};
     std::cout
       << "Usage:\n\n"
       << std::string(options.space_before_key, ' ') << std::string(argv[0]) << " [options...] [files...] [directories...]\n\n"
@@ -66,7 +65,7 @@ int main(int argc, char* argv[]) {
   // gather source files
   std::vector<std::string> source_paths;
   if (result.rests.empty()) {
-    result.rests.push_back(".");
+    result.rests.emplace_back(".");
   }
   for (const auto& arg : result.rests) {
     if (std::filesystem::is_regular_file(arg)) {
@@ -93,7 +92,7 @@ int main(int argc, char* argv[]) {
     std::exit(EXIT_SUCCESS);
   }
 
-  Executor executor;
+  cab::Executor executor;
   executor.Start(std::stoul(args.at("jobs")));
 
   // analyze source files
@@ -101,8 +100,8 @@ int main(int argc, char* argv[]) {
   std::vector<std::string> all_outputs;
   {
     std::mutex mutex;
-    Semaphore semaphore;
-    SourceAnalyzer analyzer(args);
+    cab::Semaphore semaphore;
+    SourceAnalyzer analyzer(&args);
     for (size_t i = 0; i < source_paths.size(); ++i) {
       executor.Push([&, i = i]() {
         auto file = analyzer.Process(source_paths[i]);
@@ -146,7 +145,7 @@ int main(int argc, char* argv[]) {
       size_t current = 0;
       std::atomic_size_t failed = 0;
       std::mutex mutex;
-      Semaphore semaphore;
+      cab::Semaphore semaphore;
       for (size_t i = 0; i < new_files.size(); ++i) {
         executor.Push([&, i = i]() {
           if (failed == 0) {

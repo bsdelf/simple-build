@@ -1,13 +1,14 @@
-#include "Utils.h"
-
-#include <stdio.h>
-
+#include <array>
+#include <cstdio>
 #include <filesystem>
+#include <memory>
 #include <regex>
 #include <string>
 #include <vector>
 
-std::vector<std::string> RegexSplit(const std::string& str, const std::string& pattern) {
+#include "Utils.h"
+
+auto RegexSplit(const std::string& str, const std::string& pattern) -> std::vector<std::string> {
   std::regex re{pattern};
   std::sregex_token_iterator
     first{str.begin(), str.end(), re, -1},
@@ -15,17 +16,15 @@ std::vector<std::string> RegexSplit(const std::string& str, const std::string& p
   return {first, last};
 }
 
-std::string RunCommand(const std::string& cmd) {
-  std::string output;
-  FILE* pipe = ::popen(cmd.c_str(), "r");
-  if (pipe) {
-    while (!::feof(pipe)) {
-      char buffer[1024] = {0};
-      if (::fgets(buffer, sizeof(buffer), pipe)) {
-        output += buffer;
-      }
-    }
-    ::pclose(pipe);
+auto RunCommand(const std::string& cmd) -> std::string {
+  std::string result;
+  std::unique_ptr<FILE, decltype(&::pclose)> pipe(::popen(cmd.c_str(), "r"), ::pclose);
+  if (!pipe) {
+    throw std::runtime_error("popen() failed");
   }
-  return output;
+  std::array<char, 128> buffer{};
+  while (::fgets(buffer.data(), buffer.size(), pipe.get())) {
+    result += buffer.data();
+  }
+  return result;
 }

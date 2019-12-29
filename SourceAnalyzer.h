@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <map>
 #include <string>
 #include <string_view>
@@ -20,26 +21,26 @@ class SourceAnalyzer {
   using Handler = SourceFile (SourceAnalyzer::*)(const std::string&) const;
 
  public:
-  explicit SourceAnalyzer(std::map<std::string, std::string>& args)
+  explicit SourceAnalyzer(std::map<std::string, std::string>* args)
     : args_(args) {
-    auto install = [this](Handler handler, const char* extensions[]) {
-      for (size_t i = 0; extensions[i]; ++i) {
-        handlers_.emplace(extensions[i], handler);
+    auto install = [this](Handler handler, auto extensions) {
+      for (auto extension : extensions) {
+        handlers_.emplace(extension, handler);
       }
     };
-    install(&SourceAnalyzer::ProcessC, (const char*[]){".c", nullptr});
-    install(&SourceAnalyzer::ProcessCpp, (const char*[]){".cc", ".cpp", ".cxx", "c++", nullptr});
-    install(&SourceAnalyzer::ProcessAsm, (const char*[]){".s", ".asm", ".nas", nullptr});
+    install(&SourceAnalyzer::ProcessC, std::array{".c"});
+    install(&SourceAnalyzer::ProcessCpp, std::array{".cc", ".cpp", ".cxx", "c++"});
+    install(&SourceAnalyzer::ProcessAsm, std::array{".s", ".asm", ".nas"});
   }
 
-  SourceFile Process(const std::string& path) const;
+  [[nodiscard]] auto Process(const std::string& path) const -> SourceFile;
 
  private:
-  SourceFile ProcessC(const std::string& path) const;
-  SourceFile ProcessCpp(const std::string& path) const;
-  SourceFile ProcessAsm(const std::string& path) const;
+  [[nodiscard]] auto ProcessC(const std::string& path) const -> SourceFile;
+  [[nodiscard]] auto ProcessCpp(const std::string& path) const -> SourceFile;
+  [[nodiscard]] auto ProcessAsm(const std::string& path) const -> SourceFile;
 
  private:
   std::map<std::string_view, Handler> handlers_;
-  std::map<std::string, std::string>& args_;
+  std::map<std::string, std::string>* args_;
 };

@@ -1,6 +1,8 @@
 #include "MakeParser.h"
 
-ArgumentParser MakeParser() {
+using cab::ArgumentParser;
+
+auto MakeParser() -> ArgumentParser {
   return ArgumentParser()
     .On("clean", "clean files", ArgumentParser::Set("0", "1"))
     .On("jobs", "set number of jobs", ArgumentParser::Set("0", "0"))
