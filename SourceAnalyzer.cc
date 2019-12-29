@@ -21,7 +21,8 @@ static std::vector<std::string> GetDepfiles(
   const std::string& compiler,
   const std::string& flags,
   const std::string& source) {
-  const auto& output = RunCommand(compiler + " -MM " + source + " " + flags);
+  const auto& command = JoinStrings({compiler, "-MM", source, flags});
+  const auto& output = RunCommand(command);
   auto dependencies = RegexSplit(output, "(\\s)+(\\\\)*(\\s)*");
   if (dependencies.size() <= 1) {
     return {};
@@ -35,17 +36,17 @@ static std::string BuildOutputPath(const std::string& workdir, const std::string
   return (std::filesystem::path(workdir) / filename).string() + ".o";
 }
 
-SourceFile SourceAnalyzer::Process(const std::string& path) const {
-  const auto& p = std::filesystem::path(path);
-  if (!p.has_extension()) {
+SourceFile SourceAnalyzer::Process(const std::string& source) const {
+  const auto& path = std::filesystem::path(source);
+  if (!path.has_extension()) {
     return {};
   }
-  const auto& extension = ToLower(p.extension().string());
+  const auto& extension = ToLower(path.extension().string());
   const auto& iter = handlers_.find(extension);
   if (iter == handlers_.end()) {
     return {};
   }
-  return (this->*(iter->second))(path);
+  return (this->*(iter->second))(source);
 }
 
 SourceFile SourceAnalyzer::ProcessC(const std::string& source) const {
