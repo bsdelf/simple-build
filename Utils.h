@@ -23,24 +23,20 @@ void SortStrings(T&& strs) {
 
 template <class T>
 std::string JoinStringsImpl(T&& strs, const std::string& separator) {
-  auto iter = strs.begin();
-  if (iter == strs.end()) {
-    return "";
-  }
-  std::string result = *iter++;
-  for (; iter != strs.end(); ++iter) {
-    if (!iter->empty()) {
+  std::string result;
+  for (const auto& str : strs) {
+    if (!str.empty()) {
       if (!result.empty()) {
         result += separator;
       }
-      result += *iter;
+      result += str;
     }
   }
   return result;
 }
 
-inline std::string JoinStrings(std::initializer_list<std::string> strs, const std::string& separator = " ") {
-  return JoinStringsImpl(std::move(strs), separator);
+inline std::string JoinStrings(std::initializer_list<std::string_view> strs, const std::string& separator = " ") {
+  return JoinStringsImpl(strs, separator);
 }
 
 template <class T>
