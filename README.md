@@ -44,7 +44,7 @@ Suppose we have a project with following structure:
 To build this project, just type `sb`. The output will be:
 
 ```
-* Build: 3 files
+Build 3 file(s)
 [  25% ] ./utils.cpp => ./utils.cpp.o
 [  50% ] ./main.cpp => ./main.cpp.o
 [  75% ] ./clib.c => ./clib.c.o
@@ -93,7 +93,7 @@ Options:
     jobs        set number of jobs
     target      set target name
     workdir     set working directory
-    verbose     enable verbose output
+    verbose     set verbose level
 
     as          set assembler
     asflags     add assembler flags
@@ -103,7 +103,6 @@ Options:
     cxxflags    add c++ compiler flags
     ld          set linker
     ldflags     add linker flags
-    ldorder     set linkage order
     prefix      add search directories
 
     wol         without link
