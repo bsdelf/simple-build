@@ -12,7 +12,10 @@ namespace cab {
 class Semaphore {
  public:
   Semaphore(const Semaphore&) = delete;
+  Semaphore(Semaphore&&) = delete;
+
   Semaphore& operator=(const Semaphore&) = delete;
+  Semaphore& operator=(Semaphore&&) = delete;
 
   explicit Semaphore(int value = 0) {
 #ifdef USE_POSIX_SEMAPHORE
