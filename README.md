@@ -1,7 +1,5 @@
 # Simple Build
 
-## Description
-
 `sb` is a build tool which is suitable for small C/C++ projects.
 
 For given source files, `sb` can detect all dependencies and figure out which source files should be (re)compiled and linked together. Therefore, developers can be fully focused on project implementation details without the need to amend Makefiles every now and then.
