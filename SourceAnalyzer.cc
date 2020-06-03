@@ -58,7 +58,7 @@ auto SourceAnalyzer::ProcessC(const std::string& source) const -> SourceFile {
   if (ShouldCompile(output, depfiles)) {
     command = JoinStrings({compiler, flags, "-o", output, "-c", source});
   }
-  return {source, std::move(output), depfiles, std::move(command), Linker::FromC(compiler)};
+  return {source, std::move(output), depfiles, std::move(command), Linker::FroC(compiler)};
 }
 
 auto SourceAnalyzer::ProcessCpp(const std::string& source) const -> SourceFile {
@@ -70,7 +70,7 @@ auto SourceAnalyzer::ProcessCpp(const std::string& source) const -> SourceFile {
   if (ShouldCompile(output, depfiles)) {
     command = JoinStrings({compiler, flags, "-o", output, "-c", source});
   }
-  return {source, std::move(output), depfiles, std::move(command), Linker::FromCpp(compiler)};
+  return {source, std::move(output), depfiles, std::move(command), Linker::FroCpp(compiler)};
 }
 
 auto SourceAnalyzer::ProcessAsm(const std::string& source) const -> SourceFile {
@@ -81,5 +81,5 @@ auto SourceAnalyzer::ProcessAsm(const std::string& source) const -> SourceFile {
   if (ShouldCompile(output, {source})) {
     command = JoinStrings({compiler, flags, "-o", output, source});
   }
-  return {source, std::move(output), {source}, std::move(command), Linker::FromAsm(compiler)};
+  return {source, std::move(output), {source}, std::move(command), Linker::FroAsm(compiler)};
 }
