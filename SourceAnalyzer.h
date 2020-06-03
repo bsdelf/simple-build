@@ -29,7 +29,7 @@ class SourceAnalyzer {
       }
     };
     install(&SourceAnalyzer::ProcessC, std::array{".c"});
-    install(&SourceAnalyzer::ProcessCpp, std::array{".cc", ".cpp", ".cxx", "c++"});
+    install(&SourceAnalyzer::ProcessCpp, std::array{".cc", ".cpp", ".cxx", ".c++"});
     install(&SourceAnalyzer::ProcessAsm, std::array{".s", ".asm", ".nas"});
   }
 
