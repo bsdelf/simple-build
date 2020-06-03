@@ -98,16 +98,20 @@ auto main(int argc, char* argv[]) -> int {
   // analyze source files
   std::vector<SourceFile> new_files;
   std::vector<std::string> all_outputs;
+  auto linker = Linker::FromLd(args.at("ld"));
   {
     std::mutex mutex;
     cab::Semaphore semaphore;
-    SourceAnalyzer analyzer(&args);
+    SourceAnalyzer analyzer(args);
     for (size_t i = 0; i < source_paths.size(); ++i) {
       executor.Push([&, i = i]() {
         auto file = analyzer.Process(source_paths[i]);
         if (file) {
           std::lock_guard<std::mutex> locker(mutex);
           all_outputs.push_back(file.output);
+          if (file.linker > linker) {
+            linker = file.linker;
+          }
           if (!file.command.empty()) {
             new_files.push_back(std::move(file));
           }
@@ -116,7 +120,10 @@ auto main(int argc, char* argv[]) -> int {
       });
     }
     semaphore.Wait(source_paths.size());
-    SortStrings(all_outputs);
+  }
+  SortStrings(all_outputs);
+  if (linker) {
+    args.at("ld") = linker.command;
   }
 
   // clean object and and target files
@@ -174,8 +181,13 @@ auto main(int argc, char* argv[]) -> int {
   // link object files
   if (!without_link && (!new_files.empty() || !std::filesystem::exists(target))) {
     const auto& objects = JoinStrings(all_outputs);
+    const auto& linker = args.at("ld");
+    if (linker.empty()) {
+      std::cerr << "(E) undetermined linker" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
     const auto& command =
-      JoinStrings({args.at("ld"), args.at("ldflags"), "-o", target.string(), objects});
+      JoinStrings({linker, args.at("ldflags"), "-o", target.string(), objects});
     const auto& text = verbose ? command : target.string();
     std::cout << "[ 100% ] " << text << std::endl;
     if (std::system(command.c_str()) != 0) {

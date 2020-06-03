@@ -16,7 +16,7 @@ auto MakeParser() -> ArgumentParser {
     .On("cflags", "add c compiler flags", ArgumentParser::Join("", {}))
     .On("cxx", "set c++ compiler", ArgumentParser::Set("c++", "c++"))
     .On("cxxflags", "add c++ compiler flags", ArgumentParser::Join("", {}))
-    .On("ld", "set linker", ArgumentParser::Set("cc", "cc"))
+    .On("ld", "set linker", ArgumentParser::Set("", ""))
     .On("ldflags", "add linker flags", ArgumentParser::Join("", {}))
     .On("prefix", "add search directories",
         ArgumentParser::JoinTo(

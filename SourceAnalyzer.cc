@@ -50,37 +50,36 @@ auto SourceAnalyzer::Process(const std::string& source) const -> SourceFile {
 }
 
 auto SourceAnalyzer::ProcessC(const std::string& source) const -> SourceFile {
-  const auto& compiler = args_->at("cc");
-  const auto& flags = args_->at("cflags");
+  const auto& compiler = args_.at("cc");
+  const auto& flags = args_.at("cflags");
   const auto& depfiles = GetDepfiles(compiler, flags, source);
-  auto output = BuildOutputPath(args_->at("workdir"), source);
+  auto output = BuildOutputPath(args_.at("workdir"), source);
   std::string command;
   if (ShouldCompile(output, depfiles)) {
     command = JoinStrings({compiler, flags, "-o", output, "-c", source});
   }
-  return {source, std::move(output), depfiles, std::move(command)};
+  return {source, std::move(output), depfiles, std::move(command), Linker::FromC(compiler)};
 }
 
 auto SourceAnalyzer::ProcessCpp(const std::string& source) const -> SourceFile {
-  const auto& compiler = args_->at("cxx");
-  const auto& flags = args_->at("cxxflags");
+  const auto& compiler = args_.at("cxx");
+  const auto& flags = args_.at("cxxflags");
   const auto& depfiles = GetDepfiles(compiler, flags, source);
-  auto output = BuildOutputPath(args_->at("workdir"), source);
+  auto output = BuildOutputPath(args_.at("workdir"), source);
   std::string command;
   if (ShouldCompile(output, depfiles)) {
     command = JoinStrings({compiler, flags, "-o", output, "-c", source});
   }
-  args_->at("ld") = compiler;
-  return {source, std::move(output), depfiles, std::move(command)};
+  return {source, std::move(output), depfiles, std::move(command), Linker::FromCpp(compiler)};
 }
 
 auto SourceAnalyzer::ProcessAsm(const std::string& source) const -> SourceFile {
-  auto output = BuildOutputPath(args_->at("workdir"), source);
+  const auto& compiler = args_.at("as");
+  const auto& flags = args_.at("asflags");
+  auto output = BuildOutputPath(args_.at("workdir"), source);
   std::string command;
   if (ShouldCompile(output, {source})) {
-    const auto& compiler = args_->at("as");
-    const auto& flags = args_->at("asflags");
     command = JoinStrings({compiler, flags, "-o", output, source});
   }
-  return {source, std::move(output), {source}, std::move(command)};
+  return {source, std::move(output), {source}, std::move(command), Linker::FromAsm(compiler)};
 }
