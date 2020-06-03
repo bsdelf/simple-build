@@ -98,7 +98,7 @@ auto main(int argc, char* argv[]) -> int {
   // analyze source files
   std::vector<SourceFile> new_files;
   std::vector<std::string> all_outputs;
-  auto linker = Linker::FromLd(args.at("ld"));
+  auto linker = Linker::ForLd(args.at("ld"));
   {
     std::mutex mutex;
     cab::Semaphore semaphore;

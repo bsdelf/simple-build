@@ -18,22 +18,22 @@ struct Linker {
     return priority >= 0 && !command.empty();
   }
 
-  static auto FroAsm(const std::string& command) -> Linker {
+  static auto ForAsm(const std::string& command) -> Linker {
     const auto priority = command.empty() ? -1 : 1;
     return {priority, command};
   }
 
-  static auto FroC(const std::string& command) -> Linker {
+  static auto ForC(const std::string& command) -> Linker {
     const auto priority = command.empty() ? -1 : 2;
     return {priority, command};
   }
 
-  static auto FroCpp(const std::string& command) -> Linker {
+  static auto ForCpp(const std::string& command) -> Linker {
     const auto priority = command.empty() ? -1 : 3;
     return {priority, command};
   }
 
-  static auto FromLd(const std::string& command) -> Linker {
+  static auto ForLd(const std::string& command) -> Linker {
     const auto priority = command.empty() ? -1 : 4;
     return {priority, command};
   }
