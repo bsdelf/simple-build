@@ -157,10 +157,10 @@ auto main(int argc, char* argv[]) -> int {
         executor.Push([&, i = i]() {
           if (failed == 0) {
             const auto& file = new_files[i];
+            const auto& text = verbose ? file.command : (file.source + " => " + file.output);
             {
               std::lock_guard<std::mutex> locker(mutex);
               const auto percentage = ++current * 100 / total;
-              const auto& text = verbose ? file.command : (file.source + " => " + file.output);
               std::cout << "[ " << std::setfill(' ') << std::setw(3) << percentage << "% ] " << text << std::endl;
             }
             const auto ok = std::system(file.command.c_str()) == 0;
