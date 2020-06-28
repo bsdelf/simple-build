@@ -137,15 +137,11 @@ auto main(int argc, char* argv[]) -> int {
 
   // compile source files
   if (!new_files.empty()) {
-    const auto& paths = std::accumulate(
-      new_files.begin(),
-      new_files.end(),
-      std::vector<std::string>(),
-      [](auto acc, const auto& val) {
-        acc.push_back(val.source);
-        return acc;
-      });
-    const auto& text = verbose ? JoinStrings(paths) : (std::to_string(new_files.size()) + " file(s)");
+    std::vector<std::string> sources(new_files.size());
+    std::transform(new_files.begin(), new_files.end(), sources.begin(), [](const auto& item) {
+      return item.source;
+    });
+    const auto& text = verbose ? JoinStrings(sources) : (std::to_string(new_files.size()) + " file(s)");
     std::cout << "Build " << text << std::endl;
     {
       const size_t total = new_files.size() + (without_link ? 0 : 1);
