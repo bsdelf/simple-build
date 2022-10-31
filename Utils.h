@@ -6,6 +6,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cstring>
 
 inline auto ToLower(std::string str) {
   std::transform(
