@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <initializer_list>
+#include <cstring>
 #include <string>
 #include <utility>
 #include <vector>
